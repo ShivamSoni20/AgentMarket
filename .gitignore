@@ -1,0 +1,7 @@
+node_modules/
+.env
+cache/
+artifacts/
+.vscode/
+grep.exe.stackdump
+*.log
