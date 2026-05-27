@@ -50,7 +50,7 @@ contract DisputeResolver {
         address worker = address(0);
         
         // Fetch worker from JobQueue
-        (,,,,, address jobWorker,,,,) = jobQueue.jobs(jobId);
+        (,,,,, address jobWorker,,,,,) = jobQueue.jobs(jobId);
         worker = jobWorker;
 
         if (upheld) {
@@ -59,7 +59,7 @@ contract DisputeResolver {
             if (fee > 0) {
                 payable(auditor).transfer(fee);
             }
-            escrow.refund(jobId);
+            try escrow.refund(jobId) {} catch {}
             jobQueue.resolveJob(jobId, JobQueue.Status.RESOLVED);
         } else {
             // If not upheld, release funds to the worker
@@ -72,4 +72,9 @@ contract DisputeResolver {
     
     // Receive ether to distribute slashed worker stakes
     receive() external payable {}
+
+    function withdraw(address payable to, uint256 amount) external onlyOwner {
+        require(address(this).balance >= amount, "insufficient balance");
+        to.transfer(amount);
+    }
 }

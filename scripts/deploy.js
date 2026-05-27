@@ -1,3 +1,11 @@
+/**
+ * Deploy AgentMarket contracts.
+ *
+ * Local:   npx hardhat run scripts/deploy.js --network localhost
+ * Testnet: npx hardhat run scripts/deploy.js --network somnia-testnet
+ *
+ * After deploy, copy the printed addresses into your .env file.
+ */
 const hre = require("hardhat");
 
 async function main() {
@@ -39,9 +47,22 @@ async function main() {
 
   // Configure permissions
   console.log("Configuring contracts authorization...");
-  await jobQueue.setOrchestrator(deployer.address);
+  // NOTE: In production, call jobQueue.setOrchestrator(orchestratorAgentWalletAddress)
+  // using the same address as PRIVATE_KEY in agents/.env
+  await escrow.setAuthorized(jobQueueAddress, true);
+  await jobQueue.setEscrow(escrowAddress);
+  await jobQueue.setOrchestrator(deployer.address); // deployer acts as orchestrator agent for testing
   await escrow.setOrchestrator(deployer.address);
   console.log("Configuration complete.");
+  console.log("Transferring AgentRegistry ownership to DisputeResolver...");
+  await registry.transferOwnership(disputeResolverAddress);
+  console.log("DisputeResolver authorized on AgentRegistry.");
+  console.log("Authorizing DisputeResolver on JobQueue...");
+  await jobQueue.setAuthorized(disputeResolverAddress, true);
+  console.log("DisputeResolver authorized on JobQueue.");
+  console.log("Setting DisputeResolver as EscrowPayment orchestrator...");
+  await escrow.setAuthorized(disputeResolverAddress, true);
+  console.log("DisputeResolver authorized on EscrowPayment.");
 
   console.log("\nDeployment summary:");
   console.log({
@@ -50,6 +71,16 @@ async function main() {
     EscrowPayment: escrowAddress,
     DisputeResolver: disputeResolverAddress
   });
+
+  const fs = require("fs");
+  const envAddresses = [
+    `AGENT_REGISTRY_ADDRESS=${registryAddress}`,
+    `JOB_QUEUE_ADDRESS=${jobQueueAddress}`,
+    `ESCROW_PAYMENT_ADDRESS=${escrowAddress}`,
+    `DISPUTE_RESOLVER_ADDRESS=${disputeResolverAddress}`
+  ].join("\n");
+  fs.writeFileSync("deployed-addresses.txt", envAddresses + "\n");
+  console.log("\nAddresses also written to deployed-addresses.txt — copy these into your .env");
 }
 
 main()

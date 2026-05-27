@@ -277,6 +277,26 @@
 
   .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
 
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    max-width: 100%;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .nav-cta {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   /* LIVE TICKER */
   .ticker-wrap {
     position: absolute;
@@ -841,6 +861,111 @@
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--border); }
   ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  @media (max-width: 980px) {
+    nav {
+      padding: 16px 24px;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .nav-logo {
+      flex: 1 1 auto;
+    }
+
+    .nav-links {
+      order: 3;
+      width: 100%;
+      gap: 16px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .hero {
+      padding: 140px 24px 88px;
+    }
+
+    .hero-actions,
+    footer {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .btn-primary,
+    .btn-secondary,
+    .nav-cta {
+      width: 100%;
+      padding: 14px 20px;
+    }
+
+    .stats-bar,
+    .agents-grid,
+    .primitives {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .flow {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .flow-connector {
+      display: none;
+    }
+
+    .section,
+    .cta-section {
+      padding: 80px 24px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    body {
+      cursor: auto;
+    }
+
+    .cursor,
+    .cursor-ring {
+      display: none;
+    }
+
+    nav {
+      padding: 14px 16px;
+    }
+
+    .nav-links a,
+    .nav-cta,
+    .btn-primary,
+    .btn-secondary {
+      cursor: pointer;
+    }
+
+    .hero-title {
+      font-size: clamp(2.4rem, 16vw, 4.2rem);
+    }
+
+    .hero-sub {
+      font-size: 0.82rem;
+      margin-bottom: 36px;
+    }
+
+    .stats-bar,
+    .agents-grid,
+    .primitives {
+      grid-template-columns: 1fr;
+    }
+
+    .stat-item,
+    .agent-card,
+    .primitive-card {
+      padding: 28px 22px;
+    }
+
+    footer {
+      padding: 28px 16px;
+      text-align: center;
+    }
+  }
 </style>
 </head>
 <body>
@@ -858,7 +983,6 @@
     <li><a href="#how">How It Works</a></li>
     <li><a href="#agents">Agents</a></li>
     <li><a href="#primitives">Primitives</a></li>
-    <li><a href="#build">Build Plan</a></li>
   </ul>
   <button class="nav-cta" id="navConnectBtn">Connect Wallet</button>
 </nav>
@@ -1048,89 +1172,6 @@
   </div>
 </section>
 
-<!-- BUILD PLAN -->
-<section class="section" id="build">
-  <div class="section-tag">Hackathon Plan</div>
-  <h2 class="section-title reveal">4-Week Build.<br>Ship to Win.</h2>
-  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 80px;">
-    <div class="timeline reveal">
-      <div class="timeline-item">
-        <div class="timeline-week">Week 1</div>
-        <div class="timeline-title">Contracts + Registry</div>
-        <ul class="timeline-tasks">
-          <li>AgentRegistry.sol — register/list workers</li>
-          <li>JobQueue.sol — post/accept/complete jobs</li>
-          <li>EscrowPayment.sol — SOMI lock + release</li>
-          <li>Deploy to Somnia Testnet</li>
-        </ul>
-      </div>
-      <div class="timeline-item">
-        <div class="timeline-week">Week 2</div>
-        <div class="timeline-title">Agent Logic + Somnia Primitives</div>
-        <ul class="timeline-tasks">
-          <li>JSON API Agent → registry query</li>
-          <li>LLM Inference → worker selection</li>
-          <li>3 worker agents (translate, summarise, classify)</li>
-          <li>Agent chaining for multi-step tasks</li>
-        </ul>
-      </div>
-      <div class="timeline-item">
-        <div class="timeline-week">Week 3</div>
-        <div class="timeline-title">Dashboard + Demo</div>
-        <ul class="timeline-tasks">
-          <li>Live job feed + agent activity</li>
-          <li>SOMI flow visualisation</li>
-          <li>Auditor agent + dispute UI</li>
-          <li>End-to-end live demo recording</li>
-        </ul>
-      </div>
-      <div class="timeline-item" style="padding-bottom:0">
-        <div class="timeline-week">Week 4</div>
-        <div class="timeline-title">Polish + Submit</div>
-        <ul class="timeline-tasks">
-          <li>Mainnet deployment</li>
-          <li>GitHub repo + README</li>
-          <li>Demo video (2–5 min)</li>
-          <li>Submission write-up</li>
-        </ul>
-      </div>
-    </div>
-    <div class="reveal" style="transition-delay:0.2s">
-      <div style="background:var(--surface);border:1px solid var(--border);padding:40px;margin-bottom:2px">
-        <div class="section-tag" style="margin-bottom:16px">Tech Stack</div>
-        <div style="display:flex;flex-direction:column;gap:16px">
-          <div>
-            <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">Smart Contracts</div>
-            <div style="font-family:var(--mono);font-size:0.75rem;color:var(--accent)">Solidity · Hardhat · Ethers.js</div>
-          </div>
-          <div>
-            <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">Agent Runtime</div>
-            <div style="font-family:var(--mono);font-size:0.75rem;color:var(--accent)">Somnia Agents API · AIML API · Node.js</div>
-          </div>
-          <div>
-            <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">Frontend</div>
-            <div style="font-family:var(--mono);font-size:0.75rem;color:var(--accent)">React · Viem · RainbowKit · Recharts</div>
-          </div>
-          <div>
-            <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">Chain</div>
-            <div style="font-family:var(--mono);font-size:0.75rem;color:var(--accent)">Somnia Testnet (50312) → Mainnet (5031)</div>
-          </div>
-        </div>
-      </div>
-      <div style="background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.2);padding:32px;border-top:none">
-        <div style="font-family:var(--mono);font-size:0.65rem;color:var(--accent);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:16px">Why This Wins</div>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <div style="font-family:var(--mono);font-size:0.72rem;color:var(--muted);display:flex;gap:10px;align-items:flex-start"><span style="color:var(--accent3)">✓</span> Uses ALL Somnia primitives together</div>
-          <div style="font-family:var(--mono);font-size:0.72rem;color:var(--muted);display:flex;gap:10px;align-items:flex-start"><span style="color:var(--accent3)">✓</span> Agents literally discover & hire autonomously</div>
-          <div style="font-family:var(--mono);font-size:0.72rem;color:var(--muted);display:flex;gap:10px;align-items:flex-start"><span style="color:var(--accent3)">✓</span> Phase 2 extensibility is obvious</div>
-          <div style="font-family:var(--mono);font-size:0.72rem;color:var(--muted);display:flex;gap:10px;align-items:flex-start"><span style="color:var(--accent3)">✓</span> Demo Engineer job: tick every requirement</div>
-          <div style="font-family:var(--mono);font-size:0.72rem;color:var(--muted);display:flex;gap:10px;align-items:flex-start"><span style="color:var(--accent3)">✓</span> Nobody else will build this</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- CTA -->
 <div class="cta-section">
   <h2 class="cta-title reveal">The first<br><span style="background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">agent economy</span><br>is live.</h2>
@@ -1153,13 +1194,13 @@ document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; cu
 function animRing() { rx += (mx-rx)*0.12; ry += (my-ry)*0.12; ring.style.left=rx+'px'; ring.style.top=ry+'px'; requestAnimationFrame(animRing); }
 animRing();
 document.addEventListener('mouseover', e => {
-  const target = e.target.closest('a, button, .wallet-option');
+  const target = e.target.closest('a, button');
   if (target) {
     ring.style.cssText += 'width:60px;height:60px;opacity:0.8';
   }
 });
 document.addEventListener('mouseout', e => {
-  const target = e.target.closest('a, button, .wallet-option');
+  const target = e.target.closest('a, button');
   if (target) {
     ring.style.cssText += 'width:36px;height:36px;opacity:0.5';
   }
@@ -1207,100 +1248,99 @@ const obs = new IntersectionObserver(entries => {
 }, { threshold: 0.1 });
 revealEls.forEach(el => obs.observe(el));
 
-// RAINBOWKIT WALLET CONNECTION SIMULATOR FLOW
-function initWalletConnections() {
-  const modalHtml = `
-    <div id="rainbowModal" style="position:fixed;inset:0;background:rgba(2,4,6,0.85);backdrop-filter:blur(10px);z-index:10000;display:none;align-items:center;justify-content:center;font-family:var(--sans);cursor:none;">
-      <div style="background:#0a1218;border:1px solid var(--border);width:100%;max-width:440px;padding:36px;border-radius:16px;box-shadow:0 20px:50px rgba(0,0,0,0.8), 0 0 30px rgba(0,229,255,0.05);position:relative;">
-        <button id="closeRainbow" style="position:absolute;top:20px;right:20px;background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:none;">✕</button>
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
-          <div style="width:12px;height:12px;background:var(--accent);border-radius:50%;"></div>
-          <div style="font-family:var(--mono);font-size:0.8rem;color:var(--accent);letter-spacing:0.1em;text-transform:uppercase;">RainbowKit Connection</div>
-        </div>
-        <h3 style="font-size:1.6rem;font-weight:700;margin-bottom:8px;letter-spacing:-0.01em;">Connect a Wallet</h3>
-        <p style="font-family:var(--mono);font-size:0.7rem;color:var(--muted);margin-bottom:28px;line-height:1.6;">Select a wallet provider to connect to Somnia Testnet and access AgentMarket.</p>
-        
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <button class="wallet-option" data-wallet="metamask" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:rgba(255,255,255,0.02);border:1px solid var(--border);color:var(--text);border-radius:12px;cursor:none;font-family:var(--sans);font-weight:600;font-size:0.9rem;transition:all 0.2s;">
-            <div style="display:flex;align-items:center;gap:12px;">
-              <span style="font-size:1.3rem;">🦊</span> MetaMask
-            </div>
-            <span style="font-family:var(--mono);font-size:0.6rem;color:var(--accent3);background:rgba(0,255,157,0.1);padding:2px 8px;border-radius:4px;">POPULAR</span>
-          </button>
-          <button class="wallet-option" data-wallet="rainbow" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:rgba(255,255,255,0.02);border:1px solid var(--border);color:var(--text);border-radius:12px;cursor:none;font-family:var(--sans);font-weight:600;font-size:0.9rem;transition:all 0.2s;">
-            <div style="display:flex;align-items:center;gap:12px;">
-              <span style="font-size:1.3rem;">🌈</span> Rainbow Wallet
-            </div>
-          </button>
-          <button class="wallet-option" data-wallet="walletconnect" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:rgba(255,255,255,0.02);border:1px solid var(--border);color:var(--text);border-radius:12px;cursor:none;font-family:var(--sans);font-weight:600;font-size:0.9rem;transition:all 0.2s;">
-            <div style="display:flex;align-items:center;gap:12px;">
-              <span style="font-size:1.3rem;">🔌</span> WalletConnect
-            </div>
-          </button>
-          <button class="wallet-option" data-wallet="coinbase" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:rgba(255,255,255,0.02);border:1px solid var(--border);color:var(--text);border-radius:12px;cursor:none;font-family:var(--sans);font-weight:600;font-size:0.9rem;transition:all 0.2s;">
-            <div style="display:flex;align-items:center;gap:12px;">
-              <span style="font-size:1.3rem;">🛡️</span> Coinbase Wallet
-            </div>
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
-  document.body.insertAdjacentHTML('beforeend', modalHtml);
+const SOMNIA_CHAIN_ID = '0xc488';
+const SOMNIA_PARAMS = {
+  chainId: SOMNIA_CHAIN_ID,
+  chainName: 'Somnia Testnet',
+  nativeCurrency: { name: 'SOMI', symbol: 'SOMI', decimals: 18 },
+  rpcUrls: ['https://dream-rpc.somnia.network'],
+  blockExplorerUrls: ['https://shannon-explorer.somnia.network']
+};
 
-  const modal = document.getElementById('rainbowModal');
-  const closeBtn = document.getElementById('closeRainbow');
-  const connectButtons = [
-    document.getElementById('navConnectBtn'),
-    document.getElementById('heroConnectBtn'),
-    document.getElementById('bottomConnectBtn')
-  ];
+function shortAddress(address) {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
 
-  connectButtons.forEach(btn => {
-    if (btn) {
-      btn.addEventListener('click', () => {
-        modal.style.display = 'flex';
-      });
+function getConnectButtons() {
+  return ['navConnectBtn', 'heroConnectBtn', 'bottomConnectBtn']
+    .map(id => document.getElementById(id))
+    .filter(Boolean);
+}
+
+function setWalletButtons(address) {
+  getConnectButtons().forEach(btn => {
+    btn.textContent = address ? `Open Dashboard (${shortAddress(address)})` : 'Connect Wallet';
+    btn.onclick = address ? () => { window.location.href = 'agentmarket-dashboard.html'; } : connectWallet;
+  });
+}
+
+async function ensureSomniaNetwork() {
+  if (!window.ethereum) throw new Error('No injected EVM wallet found. Install MetaMask or another EVM wallet.');
+  try {
+    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: SOMNIA_CHAIN_ID }] });
+  } catch (err) {
+    if (err.code !== 4902) throw err;
+    await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [SOMNIA_PARAMS] });
+  }
+}
+
+async function connectWallet() {
+  if (!window.ethereum) {
+    alert('No injected EVM wallet detected. Install MetaMask or another EVM wallet to connect.');
+    return;
+  }
+
+  try {
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const address = accounts[0];
+    if (!address) return;
+    await ensureSomniaNetwork();
+    localStorage.setItem('walletConnected', 'true');
+    localStorage.setItem('walletAddress', address);
+    localStorage.setItem('walletType', window.ethereum.isMetaMask ? 'MetaMask' : 'Injected Wallet');
+    setWalletButtons(address);
+    window.location.href = 'agentmarket-dashboard.html';
+  } catch (err) {
+    alert(err.message || 'Wallet connection failed.');
+  }
+}
+
+async function initWalletConnections() {
+  setWalletButtons(null);
+
+  if (!window.ethereum) return;
+
+  try {
+    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+    if (accounts[0]) {
+      localStorage.setItem('walletConnected', 'true');
+      localStorage.setItem('walletAddress', accounts[0]);
+      setWalletButtons(accounts[0]);
+    } else {
+      localStorage.removeItem('walletConnected');
+      localStorage.removeItem('walletAddress');
+      setWalletButtons(null);
+    }
+  } catch {
+    localStorage.removeItem('walletConnected');
+    localStorage.removeItem('walletAddress');
+    setWalletButtons(null);
+  }
+
+  window.ethereum.on?.('accountsChanged', accounts => {
+    if (accounts[0]) {
+      localStorage.setItem('walletConnected', 'true');
+      localStorage.setItem('walletAddress', accounts[0]);
+      setWalletButtons(accounts[0]);
+    } else {
+      localStorage.removeItem('walletConnected');
+      localStorage.removeItem('walletAddress');
+      setWalletButtons(null);
     }
   });
-
-  closeBtn.addEventListener('click', () => {
-    modal.style.display = 'none';
-  });
-
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.style.display = 'none';
-  });
-
-  const walletOptions = document.querySelectorAll('.wallet-option');
-  walletOptions.forEach(opt => {
-    opt.addEventListener('mouseenter', () => {
-      opt.style.background = 'rgba(0, 229, 255, 0.05)';
-      opt.style.borderColor = 'var(--accent)';
-    });
-    opt.addEventListener('mouseleave', () => {
-      opt.style.background = 'rgba(255, 255, 255, 0.02)';
-      opt.style.borderColor = 'var(--border)';
-    });
-    opt.addEventListener('click', () => {
-      const type = opt.dataset.wallet;
-      opt.innerHTML = '<span style="font-size:1rem;">⟳</span> Connecting to Somnia Testnet...';
-      opt.disabled = true;
-      setTimeout(() => {
-        localStorage.setItem('walletConnected', 'true');
-        localStorage.setItem('walletType', type);
-        window.location.href = 'agentmarket-dashboard.html';
-      }, 1200);
-    });
-  });
 }
 
-// Redirect immediately if already connected
-if (localStorage.getItem('walletConnected') === 'true') {
-  window.location.href = 'agentmarket-dashboard.html';
-} else {
-  initWalletConnections();
-}
+initWalletConnections();
 </script>
 </body>
 </html>

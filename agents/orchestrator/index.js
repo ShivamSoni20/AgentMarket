@@ -1,129 +1,137 @@
 const { ethers } = require("ethers");
 require("dotenv").config();
 
-// Shared utilities
 const { broadcast } = require("../lib/wsServer");
 const logger = require("../lib/logger");
+const config = require("../lib/config");
 
-// Contract ABIs
 const JobQueueABI = [
   "event JobPosted(uint256 indexed id, string capability, uint256 budget)",
+  "event ResultSubmitted(uint256 indexed id, bytes32 resultHash)",
   "function assignJob(uint256 id, address worker) external",
-  "function jobs(uint256) view returns (uint256 id, address poster, string capability, string taskData, uint256 budget, address worker, bytes32 resultHash, uint8 status, uint256 createdAt, uint256 deadline)"
+  "function completeJob(uint256 id) external",
+  "function nextJobId() external view returns (uint256)",
+  "function jobs(uint256) view returns (uint256 id, address poster, string capability, string taskData, uint256 budget, address worker, bytes32 resultHash, string resultData, uint8 status, uint256 createdAt, uint256 deadline)"
 ];
+
 const AgentRegistryABI = [
-  "function getWorkerCaps(address worker) external view returns (string[] memory)"
+  "function getWorkerCaps(address worker) external view returns (string[] memory)",
+  "function workerList(uint256) external view returns (address)",
+  "function workers(address) external view returns (address owner, uint256 bidPerJob, uint256 stake, uint256 rating, uint256 jobsCompleted, bool active)"
 ];
 
-// Deterministic mock workers – same as previous mock data
-const mockWorkers = [
-  { address: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", caps: ["translate"], rating: 490, bid: 12 },
-  { address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", caps: ["summarise"], rating: 480, bid: 8 },
-  { address: "0x90F79bf6EB2c4f870365E785982E1f101E93b906", caps: ["classify"], rating: 470, bid: 6 }
-];
-
-function selectWorker(capability, workers) {
-  logger.info(`Selecting worker for capability: ${capability}`);
-  const matches = workers.filter(w => w.caps.includes(capability));
-  if (matches.length === 0) return null;
-  matches.sort((a, b) => {
-    if (b.rating !== a.rating) return b.rating - a.rating;
-    return a.bid - b.bid;
-  });
-  const chosen = matches[0];
-  logger.info(`Chosen worker ${chosen.address} (rating ${chosen.rating}, bid ${chosen.bid})`);
-  return chosen.address;
+async function getActiveWorkers(registry) {
+  const workers = [];
+  let i = 0;
+  while (true) {
+    try {
+      const addr = await registry.workerList(i);
+      const w = await registry.workers(addr);
+      if (w.active) {
+        const caps = await registry.getWorkerCaps(addr);
+        workers.push({ address: addr, caps, rating: Number(w.rating), bid: Number(w.bidPerJob) });
+      }
+      i++;
+    } catch {
+      break;
+    }
+  }
+  return workers;
 }
 
-async function main() {
-  logger.info("Orchestrator daemon starting…");
-  const provider = new ethers.JsonRpcProvider(process.env.RPC_URL || "http://localhost:8545");
-  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY || "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", provider);
-  logger.info(`Orchestrator address: ${wallet.address}`);
+function selectWorker(capability, workers) {
+  logger.info(`[LLM Inference] Deterministic worker ranking for: ${capability}`);
+  const matches = workers.filter(w => w.caps.includes(capability));
+  if (matches.length === 0) return null;
+  matches.sort((a, b) => b.rating !== a.rating ? b.rating - a.rating : a.bid - b.bid);
+  logger.info(`[LLM Inference] Selected ${matches[0].address} (rating ${matches[0].rating}, bid ${matches[0].bid})`);
+  return matches[0].address;
+}
 
-  const jobQueueAddress = process.env.JOB_QUEUE_ADDRESS;
-  if (!jobQueueAddress) throw new Error("JOB_QUEUE_ADDRESS not set in .env");
-  const jobQueue = new ethers.Contract(jobQueueAddress, JobQueueABI, wallet);
-
-  // Listen for JobPosted events
-  const filter = jobQueue.filters.JobPosted();
-  jobQueue.on(filter, async (id, capability, budget, event) => {
-    logger.info(`JobPosted detected – id:${id} cap:${capability} budget:${budget}`);
-    // Select a worker
-    const worker = selectWorker(capability, mockWorkers);
-    if (!worker) {
-      logger.warn(`No worker found for capability ${capability}`);
-      return;
-    }
+async function assignWithRetry(jobQueue, id, worker, maxAttempts = 3) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const tx = await jobQueue.assignJob(id, worker);
       await tx.wait();
-      logger.info(`Job ${id} assigned to ${worker}`);
-      broadcast("orchestrator:assigned", { jobId: id, worker, capability, budget });
+      return tx;
     } catch (err) {
-      logger.error(`Failed to assign job ${id}: ${err}`);
+      if (attempt === maxAttempts) throw err;
+      const delay = attempt * 2000;
+      logger.warn(`assignJob attempt ${attempt} failed, retrying in ${delay}ms: ${err.message}`);
+      await new Promise(r => setTimeout(r, delay));
     }
-  });
-
-  // Keep process alive – optional health ping
-  setInterval(() => logger.debug("Orchestrator heartbeat"), 30000);
+  }
 }
 
-if (require.main === module) {
-  main().catch(err => logger.error(err));
+async function completeWithRetry(jobQueue, id, maxAttempts = 3) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const tx = await jobQueue.completeJob(id);
+      await tx.wait();
+      return tx;
+    } catch (err) {
+      if (attempt === maxAttempts) throw err;
+      const delay = attempt * 2000;
+      logger.warn(`completeJob attempt ${attempt} failed, retrying in ${delay}ms: ${err.message}`);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
 }
-
-require("dotenv").config();
-
-// Standard contract ABI definitions (for index tracking and RPC interaction)
-const JobQueueABI = [
-  "event JobPosted(uint256 indexed id, string capability, uint256 budget)",
-  "function jobs(uint256) view returns (uint256 id, address poster, string memory capability, string memory taskData, uint256 budget, address worker, bytes32 resultHash, uint8 status, uint256 createdAt, uint256 deadline)",
-  "function assignJob(uint256 id, address worker) external"
-];
-
-const AgentRegistryABI = [
-  "function getWorkerCaps(address worker) external view returns (string[] memory)"
-];
 
 async function main() {
-  console.log("Orchestrator Agent daemon started, listening on Somnia Testnet...");
-  
-  // Set up mock provider/signer for test runner environments
-  const provider = new ethers.JsonRpcProvider(process.env.RPC_URL || "http://localhost:8545");
-  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY || "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d", provider);
+  if (!config.PRIVATE_KEY) throw new Error("PRIVATE_KEY not set in .env");
+  if (!config.JOB_QUEUE_ADDRESS) throw new Error("JOB_QUEUE_ADDRESS not set in .env");
+  if (!config.AGENT_REGISTRY_ADDRESS) throw new Error("AGENT_REGISTRY_ADDRESS not set in .env");
 
-  console.log(`Orchestrator address: ${wallet.address}`);
+  logger.info("Orchestrator daemon starting…");
+  const provider = new ethers.JsonRpcProvider(config.RPC_URL);
+  const wallet = new ethers.Wallet(config.PRIVATE_KEY, provider);
+  logger.info(`Orchestrator address: ${wallet.address}`);
 
-  // Local Selection Logic (Deterministic seed=42 selection rule as detailed in plan)
-  function selectWorker(capability, workers) {
-    console.log(`\n[LLM Inference] Running deterministic worker ranking for: ${capability}`);
-    const matches = workers.filter(w => w.caps.includes(capability));
-    if (matches.length === 0) return null;
-    
-    // Sort rules: highest rating first, break ties by lowest bid (seed 42 deterministic)
-    matches.sort((a, b) => {
-      if (b.rating !== a.rating) return b.rating - a.rating;
-      return a.bid - b.bid;
-    });
+  const jobQueue = new ethers.Contract(config.JOB_QUEUE_ADDRESS, JobQueueABI, wallet);
+  const registry = new ethers.Contract(config.AGENT_REGISTRY_ADDRESS, AgentRegistryABI, provider);
+  const assignedJobs = new Set();
+  const completedJobs = new Set();
 
-    console.log(`[LLM Inference] Selected Worker: ${matches[0].address} (Rating: ${matches[0].rating}/500, Bid: ${matches[0].bid} SOMI)`);
-    return matches[0].address;
+  async function pollJobs() {
+    const nextJobId = Number(await jobQueue.nextJobId());
+    for (let jobId = 0; jobId < nextJobId; jobId++) {
+      const job = await jobQueue.jobs(jobId);
+
+      if (Number(job.status) === 0 && !assignedJobs.has(jobId)) {
+        logger.info(`Open job detected – id:${jobId} cap:${job.capability} budget:${job.budget}`);
+        try {
+          const workers = await getActiveWorkers(registry);
+          const worker = selectWorker(job.capability, workers);
+          if (!worker) { logger.warn(`No worker for capability ${job.capability}`); continue; }
+          await assignWithRetry(jobQueue, jobId, worker);
+          assignedJobs.add(jobId);
+          logger.info(`Job ${jobId} assigned to ${worker}`);
+          broadcast("orchestrator:assigned", { jobId: jobId.toString(), worker, capability: job.capability, budget: job.budget.toString() });
+        } catch (err) {
+          logger.error(`Failed to assign job ${jobId}: ${err.message}`);
+        }
+      }
+
+      if (Number(job.status) === 1 && job.resultHash !== ethers.ZeroHash && !completedJobs.has(jobId)) {
+        logger.info(`Submitted result detected – id:${jobId} hash:${job.resultHash}`);
+        try {
+          await completeWithRetry(jobQueue, jobId);
+          completedJobs.add(jobId);
+          logger.info(`Job ${jobId} completed`);
+          broadcast("orchestrator:completed", { jobId: jobId.toString(), resultHash: job.resultHash });
+        } catch (err) {
+          logger.error(`Failed to complete job ${jobId}: ${err.message}`);
+        }
+      }
+    }
   }
 
-  // Active mock registry data for local testing
-  const mockWorkers = [
-    { address: "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", caps: ["translate"], rating: 490, bid: 12 },
-    { address: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", caps: ["summarise"], rating: 480, bid: 8 },
-    { address: "0x90F79bf6EB2c4f870365E785982E1f101E93b906", caps: ["classify"], rating: 470, bid: 6 }
-  ];
-
-  // Dummy loop representing live network polling
-  setInterval(async () => {
-    console.log("Polling Somnia block headers... Block current.");
-  }, 10000);
+  setInterval(() => pollJobs().catch(err => logger.error(`Orchestrator poll failed: ${err.message}`)), 3000);
+  setInterval(() => logger.debug("Orchestrator heartbeat"), 30000);
+  logger.info("Orchestrator polling for jobs…");
 }
 
 if (require.main === module) {
-  main().catch(console.error);
+  main().catch(err => { logger.error(err); process.exit(1); });
 }

@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AgentMarket — Dashboard</title>
+<title>AgentMarket ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <style>
   :root {
     --bg: #030608;
@@ -24,8 +25,8 @@
     --sans: 'Syne', sans-serif;
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; overflow: hidden; }
-  body { background: var(--bg); color: var(--text); font-family: var(--sans); display: flex; flex-direction: column; cursor: none; }
+  html, body { min-height: 100%; overflow-x: hidden; overflow-y: auto; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); display: flex; flex-direction: column; cursor: none; overflow-x: hidden; overflow-y: auto; }
 
   /* CURSOR */
   .cursor { width: 10px; height: 10px; background: var(--accent); border-radius: 50%; position: fixed; pointer-events: none; z-index: 9999; mix-blend-mode: difference; transform: translate(-50%,-50%); transition: transform 0.1s; }
@@ -45,7 +46,8 @@
   }
 
   .topbar-left { display: flex; align-items: center; gap: 24px; }
-  .logo { font-family: var(--mono); font-size: 0.85rem; color: var(--accent); display: flex; align-items: center; gap: 8px; }
+  .logo { font-family: var(--mono); font-size: 0.85rem; color: var(--accent); display: flex; align-items: center; gap: 8px; text-decoration: none; cursor: none; }
+  .logo:hover { color: var(--accent3); }
   .logo-dot { width: 7px; height: 7px; background: var(--accent3); border-radius: 50%; animation: pulse 2s infinite; }
   @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(0,255,157,0.5); } 50% { box-shadow: 0 0 0 5px rgba(0,255,157,0); } }
 
@@ -62,7 +64,7 @@
   .wallet-btn:hover { border-color: var(--accent); color: var(--accent); }
 
   /* LAYOUT */
-  .layout { display: flex; flex: 1; overflow: hidden; position: relative; z-index: 1; }
+  .layout { display: flex; flex: 1; min-height: calc(100vh - 52px); overflow: visible; position: relative; z-index: 1; }
 
   /* SIDEBAR */
   .sidebar { width: 220px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
@@ -86,7 +88,7 @@
   .mini-status.idle { background: var(--muted); }
 
   /* MAIN */
-  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .main { flex: 1; display: flex; flex-direction: column; overflow: visible; }
 
   /* TOP METRIC ROW */
   .metrics { display: grid; grid-template-columns: repeat(5, 1fr); border-bottom: 1px solid var(--border); flex-shrink: 0; }
@@ -101,10 +103,14 @@
   .delta-down { color: var(--warn); }
 
   /* CONTENT AREA */
-  .content { flex: 1; display: grid; grid-template-columns: 1fr 380px; grid-template-rows: 1fr 1fr; overflow: hidden; }
+  .content { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(420px, 520px); grid-template-rows: minmax(620px, auto) minmax(420px, auto); overflow: visible; }
 
   /* JOB FEED */
   .panel { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .panel,
+  .sidebar-section {
+    scroll-margin-top: 72px;
+  }
   .panel-last-col { border-right: none; }
   .panel-header { padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
   .panel-title { font-family: var(--mono); font-size: 0.65rem; color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
@@ -145,19 +151,19 @@
 
   /* TASK INPUT */
   .task-input-panel { border-bottom: none; }
-  .task-form { padding: 16px; display: flex; flex-direction: column; gap: 10px; flex: 1; overflow-y: auto; }
+  .task-form { padding: 22px; display: flex; flex-direction: column; gap: 14px; flex: 1; overflow-y: auto; }
   .form-label { font-family: var(--mono); font-size: 0.6rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
-  .form-input { width: 100%; background: var(--bg2); border: 1px solid var(--border); padding: 10px 14px; font-family: var(--mono); font-size: 0.72rem; color: var(--text); outline: none; resize: none; transition: border-color 0.2s; }
+  .form-input { width: 100%; background: var(--bg2); border: 1px solid var(--border); padding: 12px 14px; font-family: var(--mono); font-size: 0.72rem; color: var(--text); outline: none; resize: vertical; min-height: 44px; transition: border-color 0.2s; }
   .form-input:focus { border-color: var(--accent); }
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .form-select { width: 100%; background: var(--bg2); border: 1px solid var(--border); padding: 10px 14px; font-family: var(--mono); font-size: 0.68rem; color: var(--text); outline: none; appearance: none; cursor: none; }
-  .btn-submit { width: 100%; font-family: var(--mono); font-size: 0.72rem; padding: 14px; background: var(--accent); color: var(--bg); border: none; cursor: none; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; transition: box-shadow 0.2s, opacity 0.2s; clip-path: polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%); }
+  .form-select { width: 100%; background: var(--bg2); border: 1px solid var(--border); padding: 12px 14px; min-height: 44px; font-family: var(--mono); font-size: 0.68rem; color: var(--text); outline: none; appearance: none; cursor: none; }
+  .btn-submit { width: 100%; min-height: 50px; font-family: var(--mono); font-size: 0.72rem; padding: 14px 16px; background: var(--accent); color: var(--bg); border: none; cursor: none; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; transition: box-shadow 0.2s, opacity 0.2s; clip-path: polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%); white-space: normal; overflow-wrap: anywhere; }
   .btn-submit:hover { box-shadow: 0 0 30px rgba(0,229,255,0.5); }
   .btn-submit:disabled { opacity: 0.4; }
 
   /* LLM RESULT */
-  .result-area { background: var(--bg2); border: 1px solid var(--border2); padding: 14px; font-family: var(--mono); font-size: 0.68rem; color: var(--muted); line-height: 1.7; min-height: 80px; position: relative; overflow-y: auto; max-height: 160px; }
-  .result-typing::after { content: '▋'; color: var(--accent); animation: blink 0.7s infinite; }
+  .result-area { background: var(--bg2); border: 1px solid var(--border2); padding: 18px; font-family: var(--mono); font-size: 0.68rem; color: var(--muted); line-height: 1.7; min-height: 130px; position: relative; overflow-y: auto; max-height: 240px; }
+  .result-typing::after { content: 'ÃƒÂ¢Ã¢â‚¬â€œÃ¢â‚¬Â¹'; color: var(--accent); animation: blink 0.7s infinite; }
   @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
   .result-label { position: absolute; top: -10px; left: 12px; font-size: 0.58rem; background: var(--bg2); padding: 0 6px; color: var(--accent2); letter-spacing: 0.1em; text-transform: uppercase; }
 
@@ -184,6 +190,133 @@
   ::-webkit-scrollbar { width: 3px; height: 3px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); }
+
+  @media (max-width: 1180px) {
+    html, body {
+      height: auto;
+      overflow: auto;
+    }
+
+    body {
+      cursor: auto;
+      overflow: auto;
+    }
+
+    .cursor,
+    .cursor-ring {
+      display: none;
+    }
+
+    .topbar {
+      height: auto;
+      min-height: 52px;
+      flex-wrap: wrap;
+      padding: 12px 16px;
+      gap: 12px;
+    }
+
+    .topbar-left,
+    .topbar-right,
+    .nav-tabs {
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .layout {
+      display: block;
+      overflow: visible;
+    }
+
+    .sidebar {
+      width: 100%;
+      max-height: none;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .mini-workers {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .main,
+    .content {
+      overflow: visible;
+    }
+
+    .metrics {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .content {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel,
+    .panel-last-col {
+      min-height: 360px;
+      border-right: none !important;
+    }
+
+    .post-job-panel {
+      min-height: 620px;
+    }
+
+    .wallet-btn,
+    .panel-action,
+    .tab,
+    .btn-submit,
+    .form-input,
+    .form-select {
+      cursor: pointer;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .topbar-left,
+    .topbar-right,
+    .nav-tabs {
+      width: 100%;
+    }
+
+    .tab,
+    .wallet-btn,
+    .chain-badge {
+      min-height: 40px;
+      justify-content: center;
+    }
+
+    .wallet-btn,
+    .chain-badge {
+      width: 100%;
+      text-align: center;
+    }
+
+    .metrics,
+    .mini-workers,
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .metric,
+    .task-form,
+    .flow-viz,
+    .somi-flow {
+      padding: 16px;
+    }
+
+    .job-meta,
+    .somi-tx {
+      flex-wrap: wrap;
+    }
+
+    .somi-amt,
+    .somi-time {
+      width: auto;
+      text-align: left;
+    }
+  }
 </style>
 </head>
 <body>
@@ -193,23 +326,20 @@
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-left">
-    <div class="logo"><div class="logo-dot"></div>AGENT<span style="color:var(--text)">MARKET</span></div>
+    <a href="index.html" class="logo"><div class="logo-dot"></div>AGENT<span style="color:var(--text)">MARKET</span></a>
     <div class="nav-tabs">
-      <a href="#" class="tab active"><div class="tab-dot"></div>Dashboard</a>
-      <a href="#" class="tab">Registry</a>
-      <a href="#" class="tab">Jobs</a>
-      <a href="#" class="tab">SOMI Flow</a>
-      <a href="index.html" class="tab">← Landing</a>
+      <a href="#dashboardTop" class="tab active"><div class="tab-dot"></div>Dashboard</a>
+      <a href="#somiFlowSection" class="tab">SOMI Flow</a>
     </div>
   </div>
   <div class="topbar-right">
-    <div class="chain-badge">● SOMNIA TESTNET</div>
+    <div class="chain-badge">ÃƒÂ¢Ã¢â‚¬â€Ã‚Â SOMNIA TESTNET</div>
     <button class="wallet-btn" id="walletBtn">Connect Wallet</button>
   </div>
 </div>
 
 <!-- LAYOUT -->
-<div class="layout">
+<div class="layout" id="dashboardTop">
 
   <!-- SIDEBAR -->
   <div class="sidebar">
@@ -221,12 +351,12 @@
       <div class="sidebar-stat"><span class="sidebar-stat-name">TPS</span><span class="sidebar-stat-val green" id="tps">1,240</span></div>
       <div class="sidebar-stat"><span class="sidebar-stat-name">Gas (gwei)</span><span class="sidebar-stat-val">0.001</span></div>
     </div>
-    <div class="sidebar-section">
+    <div class="sidebar-section" id="registrySection">
       <div class="sidebar-label">Deployed Contracts</div>
-      <div class="sidebar-stat"><span class="sidebar-stat-name">Registry</span><a href="https://shannon-explorer.somnia.network/address/0x03FBa520D28659c9CA074cD39d0c43CB40C00537" target="_blank" style="font-family:var(--mono);font-size:0.6rem;color:var(--accent);text-decoration:none;cursor:none">0x03FB...0537 ↗</a></div>
-      <div class="sidebar-stat"><span class="sidebar-stat-name">JobQueue</span><a href="https://shannon-explorer.somnia.network/address/0xaCAb5Ce99eA648bBB5FF451B0094625dfbDbd53E" target="_blank" style="font-family:var(--mono);font-size:0.6rem;color:var(--accent3);text-decoration:none;cursor:none">0xaCAb...d53E ↗</a></div>
-      <div class="sidebar-stat"><span class="sidebar-stat-name">Escrow</span><a href="https://shannon-explorer.somnia.network/address/0x5497ebcdaDC01928bBdbbBF376265A3713b68B26" target="_blank" style="font-family:var(--mono);font-size:0.6rem;color:var(--accent2);text-decoration:none;cursor:none">0x5497...8B26 ↗</a></div>
-      <div class="sidebar-stat"><span class="sidebar-stat-name">Disputes</span><a href="https://shannon-explorer.somnia.network/address/0x731518CCa0Ff335E87Fdb02AF209CDFd51C4a535" target="_blank" style="font-family:var(--mono);font-size:0.6rem;color:var(--warn);text-decoration:none;cursor:none">0x7315...a535 ↗</a></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-name">Registry</span><a href="https://shannon-explorer.somnia.network/address/0x819F97dd2f5E23f85Fc7868a3618729A6A79A00B" target="_blank" style="font-family:var(--mono);font-size:0.6rem;color:var(--accent);text-decoration:none;cursor:none">0x819F...A00B ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â€</a></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-name">JobQueue</span><a href="https://shannon-explorer.somnia.network/address/0xd3F0D8ba8A32F05bc773c56f231d22937531b25b" target="_blank" style="font-family:var(--mono);font-size:0.6rem;color:var(--accent3);text-decoration:none;cursor:none">0xd3F0...b25b ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â€</a></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-name">Escrow</span><a href="https://shannon-explorer.somnia.network/address/0x3AC8c9E4B60f851fB186570Df95F0bEF6CeF25Ef" target="_blank" style="font-family:var(--mono);font-size:0.6rem;color:var(--accent2);text-decoration:none;cursor:none">0x3AC8...25Ef ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â€</a></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-name">Disputes</span><a href="https://shannon-explorer.somnia.network/address/0x3cDe1F3963eB400edf89b7fA7B8C23ca246A60C8" target="_blank" style="font-family:var(--mono);font-size:0.6rem;color:var(--warn);text-decoration:none;cursor:none">0x3cDe...60C8 ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â€</a></div>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Market</div>
@@ -246,27 +376,27 @@
       <div class="metric" style="--metric-color:var(--accent)">
         <div class="metric-label">Jobs Completed (24h)</div>
         <div class="metric-val" id="m1">1,384</div>
-        <div class="metric-delta delta-up">↑ 8.4%</div>
+        <div class="metric-delta delta-up">ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬Ëœ 8.4%</div>
       </div>
       <div class="metric" style="--metric-color:var(--accent3)">
         <div class="metric-label">SOMI Paid Out</div>
         <div class="metric-val" id="m2">92,400</div>
-        <div class="metric-delta delta-up">↑ all-time high</div>
+        <div class="metric-delta delta-up">ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬Ëœ all-time high</div>
       </div>
       <div class="metric" style="--metric-color:var(--accent2)">
         <div class="metric-label">Avg Completion</div>
         <div class="metric-val">1.2s</div>
-        <div class="metric-delta delta-up">↑ L1 native speed</div>
+        <div class="metric-delta delta-up">ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬Ëœ L1 native speed</div>
       </div>
       <div class="metric" style="--metric-color:var(--warn)">
         <div class="metric-label">Dispute Rate</div>
         <div class="metric-val">0.3%</div>
-        <div class="metric-delta delta-down">↑ 0.1% today</div>
+        <div class="metric-delta delta-down">ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬Ëœ 0.1% today</div>
       </div>
       <div class="metric" style="--metric-color:var(--accent)">
         <div class="metric-label">Consensus Accuracy</div>
         <div class="metric-val">99.7%</div>
-        <div class="metric-delta delta-up">↑ deterministic LLM</div>
+        <div class="metric-delta delta-up">ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬Ëœ deterministic LLM</div>
       </div>
     </div>
 
@@ -274,7 +404,7 @@
     <div class="content">
 
       <!-- JOB FEED -->
-      <div class="panel">
+      <div class="panel" id="jobsSection">
         <div class="panel-header">
           <div class="panel-title">Live Job Queue</div>
           <div style="display:flex;gap:8px">
@@ -288,19 +418,19 @@
       <div style="display:flex;flex-direction:column;overflow:hidden;border-bottom:1px solid var(--border);" class="panel-last-col">
 
         <!-- TASK SUBMISSION FORM -->
-        <div class="panel" style="flex:1;border-right:none;">
+        <div class="panel post-job-panel" style="flex:1.35;border-right:none;">
           <div class="panel-header">
             <div class="panel-title">Post a Job</div>
-            <span style="font-family:var(--mono);font-size:0.58rem;color:var(--accent2)">AI-powered · AIML API</span>
+            <span style="font-family:var(--mono);font-size:0.58rem;color:var(--accent2)">Demo Mode Ãƒâ€šÃ‚Â· Simulated Output</span>
           </div>
           <div class="task-form">
             <div>
               <div class="form-label">Task Description</div>
-              <textarea class="form-input" id="taskDesc" rows="2" placeholder="e.g. Translate the following text to Japanese and summarise in 3 bullets..."></textarea>
+              <textarea class="form-input" id="taskDesc" rows="4" placeholder="e.g. Translate the following text to Japanese and summarise in 3 bullets..."></textarea>
             </div>
             <div>
               <div class="form-label">Task Input</div>
-              <textarea class="form-input" id="taskInput" rows="2" placeholder="Input data for the worker agent..."></textarea>
+              <textarea class="form-input" id="taskInput" rows="4" placeholder="Input data for the worker agent..."></textarea>
             </div>
             <div class="form-row">
               <div>
@@ -314,15 +444,23 @@
               </div>
               <div>
                 <div class="form-label">Max Budget (SOMI)</div>
-                <input type="number" class="form-input" id="budget" value="100" style="height:37px;padding:8px 14px">
+                <input type="number" class="form-input" id="budget" value="100">
               </div>
             </div>
-            <button class="btn-submit" id="submitBtn">⚡ Dispatch to Orchestrator</button>
+            <button class="btn-submit" id="submitBtn">ÃƒÂ¢Ã…Â¡Ã‚Â¡ Dispatch to Orchestrator</button>
             <div style="position:relative">
               <div class="result-area" id="resultArea">
                 <span class="result-label">Agent Result</span>
                 <span id="resultText" style="color:var(--muted2)">Awaiting job dispatch...</span>
               </div>
+            </div>
+            <div style="border-top:1px solid var(--border2);padding-top:14px">
+              <div class="form-label">Register This Wallet As Worker</div>
+              <div class="form-row">
+                <input type="number" class="form-input" id="workerBid" value="5" placeholder="Bid per job (SOMI)">
+                <input type="number" class="form-input" id="workerStake" value="0.01" step="0.01" placeholder="Stake (SOMI)">
+              </div>
+              <button class="btn-submit" id="registerWorkerBtn" style="margin-top:10px;background:var(--accent3)">Register Worker</button>
             </div>
           </div>
         </div>
@@ -339,7 +477,7 @@
       </div>
 
       <!-- SOMI FLOW -->
-      <div class="panel" style="border-right:none;border-bottom:none;" class="panel-last-col">
+      <div class="panel panel-last-col" id="somiFlowSection" style="border-right:none;border-bottom:none;">
         <div class="panel-header">
           <div class="panel-title">SOMI Token Flow</div>
         </div>
@@ -355,7 +493,7 @@
 </div>
 
 <script>
-// ─── CURSOR ─────────────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ CURSOR ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 const cur = document.getElementById('cursor');
 const ring = document.getElementById('cursorRing');
 let mx=0,my=0,rx=0,ry=0;
@@ -364,7 +502,7 @@ function animR(){ rx+=(mx-rx)*0.15; ry+=(my-ry)*0.15; ring.style.left=rx+'px'; r
 animR();
 document.querySelectorAll('a,button,select,textarea,input').forEach(el => { el.addEventListener('mouseenter',()=>{ring.style.width='50px';ring.style.height='50px';}); el.addEventListener('mouseleave',()=>{ring.style.width='30px';ring.style.height='30px';}); });
 
-// ─── DATA ────────────────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ DATA ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 const workers = [
   { id:'0x4f2a', name:'agent_0x4f2a', skill:'TRANSLATE', status:'busy', rating:4.9, jobs:342, bid:12 },
   { id:'0x9c31', name:'agent_0x9c31', skill:'SUMMARISE', status:'online', rating:4.8, jobs:218, bid:8 },
@@ -377,11 +515,11 @@ const workers = [
 ];
 
 const taskTemplates = [
-  { task:'Translate product description EN→JP + summarise in 3 bullets', cap:'translate', budget:180 },
+  { task:'Translate product description ENÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢JP + summarise in 3 bullets', cap:'translate', budget:180 },
   { task:'Classify 50 customer support tickets by urgency', cap:'classify', budget:120 },
   { task:'Sentiment analysis on 200 product reviews', cap:'sentiment', budget:80 },
   { task:'Summarise Q3 financial report into executive brief', cap:'summarise', budget:60 },
-  { task:'Translate legal document EN→DE with formal register', cap:'translate', budget:250 },
+  { task:'Translate legal document ENÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢DE with formal register', cap:'translate', budget:250 },
   { task:'Classify news headlines by topic category', cap:'classify', budget:90 },
 ];
 
@@ -390,14 +528,14 @@ let blockNum = 12847231;
 let somiPaid = 92400;
 let jobsCompleted = 1384;
 
-// ─── SIDEBAR WORKERS ────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ SIDEBAR WORKERS ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 function renderMiniWorkers() {
   const el = document.getElementById('miniWorkers');
   el.innerHTML = workers.map(w => `
     <div class="mini-worker">
       <div>
         <span class="mini-worker-name">${w.name.slice(0,12)}...</span>
-        <span class="mini-worker-skill">${w.skill} · ${w.bid} SOMI/job · ★${w.rating}</span>
+        <span class="mini-worker-skill">${w.skill} Ãƒâ€šÃ‚Â· ${w.bid} SOMI/job Ãƒâ€šÃ‚Â· ÃƒÂ¢Ã‹Å“Ã¢â‚¬Â¦${w.rating}</span>
       </div>
       <div class="mini-status ${w.status}"></div>
     </div>
@@ -405,7 +543,7 @@ function renderMiniWorkers() {
 }
 renderMiniWorkers();
 
-// ─── BAR CHART ──────────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ BAR CHART ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 const barData = [
   { label:'TRANSLATE', val:42, color:'var(--accent)' },
   { label:'SUMMARISE', val:28, color:'var(--accent3)' },
@@ -423,7 +561,7 @@ function renderBars() {
 }
 renderBars();
 
-// ─── JOB FEED ────────────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ JOB FEED ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 let jobs = [];
 function addJob(task, cap, budget, status='pending') {
   const worker = workers.filter(w=>w.skill===cap.toUpperCase()&&w.status!=='idle')[0] || workers[0];
@@ -448,7 +586,7 @@ function promoteJob(id, status) {
     document.getElementById('m1').textContent = jobsCompleted.toLocaleString();
     document.getElementById('m2').textContent = Math.floor(somiPaid).toLocaleString();
     addSomiTx('orchestrator', job.worker, Math.floor(job.budget*0.7));
-    addActivity({ dot:'var(--accent3)', title:`Job ${id} completed by ${job.worker}`, sub:`Result posted on-chain · audit receipt generated`, color:'var(--accent3)' });
+    addActivity({ dot:'var(--accent3)', title:`Job ${id} completed by ${job.worker}`, sub:`Result posted on-chain Ãƒâ€šÃ‚Â· audit receipt generated`, color:'var(--accent3)' });
   }
 }
 
@@ -456,7 +594,7 @@ function renderJobs() {
   document.getElementById('jobFeed').innerHTML = jobs.map(j => `
     <div class="job-card">
       <div class="job-top">
-        <span class="job-id">JOB ${j.id} · ${j.time}</span>
+        <span class="job-id">JOB ${j.id} Ãƒâ€šÃ‚Â· ${j.time}</span>
         <span class="job-status status-${j.status}">${j.status.toUpperCase()}</span>
       </div>
       <div class="job-task">${j.task}</div>
@@ -469,7 +607,7 @@ function renderJobs() {
   `).join('');
 }
 
-// ─── ACTIVITY LOG ────────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ ACTIVITY LOG ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 let activities = [];
 function addActivity({dot, title, sub, color}) {
   const time = new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
@@ -491,7 +629,7 @@ function addActivity({dot, title, sub, color}) {
   `).join('');
 }
 
-// ─── SOMI FLOW ───────────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ SOMI FLOW ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 let txs = [];
 function addSomiTx(from, to, amount) {
   txs.unshift({from, to, amount, time: new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit',second:'2-digit'})});
@@ -499,7 +637,7 @@ function addSomiTx(from, to, amount) {
   document.getElementById('somiFlow').innerHTML = txs.map(t => `
     <div class="somi-tx">
       <span class="somi-from">${t.from.slice(0,14)}</span>
-      <span class="somi-arrow">→</span>
+      <span class="somi-arrow">ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢</span>
       <span class="somi-to">${t.to.slice(0,14)}</span>
       <span class="somi-amt">+${t.amount} SOMI</span>
       <span class="somi-time">${t.time}</span>
@@ -507,23 +645,23 @@ function addSomiTx(from, to, amount) {
   `).join('');
 }
 
-// ─── BLOCK TICKER ────────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ BLOCK TICKER ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 setInterval(() => {
   blockNum += Math.floor(Math.random()*3)+1;
   document.getElementById('blockNum').textContent = blockNum.toLocaleString();
   document.getElementById('tps').textContent = (1200 + Math.floor(Math.random()*200)).toLocaleString();
 }, 800);
 
-// ─── AUTO SIMULATION ─────────────────────────────────────────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ AUTO SIMULATION ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 function autoSimulate() {
   const t = taskTemplates[Math.floor(Math.random()*taskTemplates.length)];
   const worker = workers.filter(w=>w.skill===t.cap.toUpperCase())[0];
-  addActivity({ dot:'var(--accent)', title:`Orchestrator querying registry for ${t.cap.toUpperCase()}`, sub:'JSON API Agent → AgentRegistry.sol', color:'var(--accent)' });
+  addActivity({ dot:'var(--accent)', title:`Orchestrator querying registry for ${t.cap.toUpperCase()}`, sub:'JSON API Agent ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ AgentRegistry.sol', color:'var(--accent)' });
   setTimeout(() => {
-    addActivity({ dot:'var(--accent2)', title:`LLM Inference selected ${worker.name}`, sub:`Rating ${worker.rating}★ · Bid: ${worker.bid} SOMI · cheapest qualified`, color:'var(--accent2)' });
+    addActivity({ dot:'var(--accent2)', title:`LLM Inference selected ${worker.name}`, sub:`Rating ${worker.rating}ÃƒÂ¢Ã‹Å“Ã¢â‚¬Â¦ Ãƒâ€šÃ‚Â· Bid: ${worker.bid} SOMI Ãƒâ€šÃ‚Â· cheapest qualified`, color:'var(--accent2)' });
     setTimeout(() => {
       const job = addJob(t.task, t.cap, t.budget, 'active');
-      addActivity({ dot:'var(--warn)', title:`SOMI locked in escrow · Job ${job.id}`, sub:`${t.budget} SOMI → EscrowPayment.sol`, color:'var(--warn)' });
+      addActivity({ dot:'var(--warn)', title:`SOMI locked in escrow Ãƒâ€šÃ‚Â· Job ${job.id}`, sub:`${t.budget} SOMI ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ EscrowPayment.sol`, color:'var(--warn)' });
     }, 500);
   }, 800);
 }
@@ -533,47 +671,225 @@ taskTemplates.slice(0,4).forEach((t,i) => {
   setTimeout(() => addJob(t.task, t.cap, t.budget, i<2?'done':i===2?'active':'pending'), i*200);
 });
 
-addActivity({ dot:'var(--accent3)', title:'AgentMarket initialised', sub:'Somnia Testnet connected · 247 workers online', color:'var(--accent3)' });
+addActivity({ dot:'var(--accent3)', title:'AgentMarket initialised', sub:'Somnia Testnet connected Ãƒâ€šÃ‚Â· 247 workers online', color:'var(--accent3)' });
 addSomiTx('user_0xabc1', 'orchestrator', 180);
 addSomiTx('orchestrator', 'agent_0x4f2a', 126);
 addSomiTx('user_0xdef2', 'orchestrator', 80);
 
-setInterval(autoSimulate, 7000 + Math.random()*4000);
+let liveMode = false;
+setInterval(() => { if (!liveMode) autoSimulate(); }, 7000 + Math.random()*4000);
 
-// ─── FORM SUBMIT WITH AIML API ────────────────────────────────────────────────
+const CONTRACTS = {
+  AgentRegistry: '0x819F97dd2f5E23f85Fc7868a3618729A6A79A00B',
+  JobQueue: '0xd3F0D8ba8A32F05bc773c56f231d22937531b25b',
+  EscrowPayment: '0x3AC8c9E4B60f851fB186570Df95F0bEF6CeF25Ef',
+  DisputeResolver: '0x3cDe1F3963eB400edf89b7fA7B8C23ca246A60C8'
+};
+
+const RPC_URL = 'https://dream-rpc.somnia.network';
+const STATUS_LABELS = ['pending', 'active', 'done', 'disputed', 'resolved'];
+let chain = null;
+
+async function loadAbi(name) {
+  const res = await fetch(`abis/${name}.json`);
+  if (!res.ok) throw new Error(`Failed to load ${name} ABI`);
+  return res.json();
+}
+
+async function getChain() {
+  if (chain) return chain;
+  if (!window.ethers) throw new Error('ethers.js failed to load');
+  const [registryAbi, jobQueueAbi, escrowAbi] = await Promise.all([
+    loadAbi('AgentRegistry'),
+    loadAbi('JobQueue'),
+    loadAbi('EscrowPayment')
+  ]);
+  const readProvider = window.ethereum ? new ethers.BrowserProvider(window.ethereum) : new ethers.JsonRpcProvider(RPC_URL);
+  chain = {
+    readProvider,
+    registry: new ethers.Contract(CONTRACTS.AgentRegistry, registryAbi, readProvider),
+    jobQueue: new ethers.Contract(CONTRACTS.JobQueue, jobQueueAbi, readProvider),
+    escrow: new ethers.Contract(CONTRACTS.EscrowPayment, escrowAbi, readProvider),
+    registryAbi,
+    jobQueueAbi
+  };
+  return chain;
+}
+
+async function getSignerContract(name) {
+  if (!window.ethereum) throw new Error('Connect wallet first');
+  await ensureSomniaNetwork();
+  const provider = new ethers.BrowserProvider(window.ethereum);
+  const signer = await provider.getSigner();
+  const c = await getChain();
+  const abi = name === 'JobQueue' ? c.jobQueueAbi : c.registryAbi;
+  return new ethers.Contract(CONTRACTS[name], abi, signer);
+}
+
+async function syncLiveWorkers() {
+  const c = await getChain();
+  const liveWorkers = [];
+  for (let i = 0; i < 100; i++) {
+    try {
+      const address = await c.registry.workerList(i);
+      const info = await c.registry.workers(address);
+      const caps = await c.registry.getWorkerCaps(address);
+      if (info.active) {
+        liveWorkers.push({
+          id: address,
+          name: address,
+          skill: caps.join(', ').toUpperCase(),
+          status: 'online',
+          rating: Number(info.rating) / 100,
+          jobs: Number(info.jobsCompleted),
+          bid: ethers.formatEther(info.bidPerJob)
+        });
+      }
+    } catch {
+      break;
+    }
+  }
+
+  const el = document.getElementById('miniWorkers');
+  el.innerHTML = liveWorkers.length ? liveWorkers.map(w => `
+    <div class="mini-worker">
+      <div>
+        <span class="mini-worker-name">${shortAddress(w.name)}</span>
+        <span class="mini-worker-skill">${w.skill} Ã‚Â· ${w.bid} SOMI/job Ã‚Â· Ã¢Ëœâ€¦${w.rating.toFixed(2)}</span>
+      </div>
+      <div class="mini-status ${w.status}"></div>
+    </div>
+  `).join('') : '<div class="mini-worker"><span class="mini-worker-skill">No registered workers yet</span></div>';
+  document.getElementById('workerCount').textContent = String(liveWorkers.length);
+}
+
+async function syncLiveJobs() {
+  const c = await getChain();
+  const nextJobId = Number(await c.jobQueue.nextJobId());
+  const liveJobs = [];
+  txs = [];
+  for (let id = Math.max(0, nextJobId - 20); id < nextJobId; id++) {
+    const job = await c.jobQueue.jobs(id);
+    const statusIndex = Number(job.status);
+    const escrow = await c.escrow.escrows(id);
+    liveJobs.unshift({
+      id: `#${id}`,
+      task: job.taskData || job.capability,
+      cap: job.capability,
+      budget: ethers.formatEther(job.budget),
+      status: STATUS_LABELS[statusIndex] || 'pending',
+      worker: job.worker === ethers.ZeroAddress ? 'unassigned' : job.worker,
+      time: new Date(Number(job.createdAt) * 1000).toLocaleTimeString()
+    });
+    if (escrow.amount > 0n) {
+      txs.unshift({
+        from: shortAddress(escrow.payer),
+        to: escrow.payee === ethers.ZeroAddress ? 'escrow' : shortAddress(escrow.payee),
+        amount: ethers.formatEther(escrow.amount),
+        time: new Date(Number(job.createdAt) * 1000).toLocaleTimeString()
+      });
+    }
+  }
+
+  liveMode = true;
+  jobs = liveJobs;
+  renderJobs();
+  document.getElementById('activeJobs').textContent = String(liveJobs.filter(j => j.status !== 'done' && j.status !== 'resolved').length);
+  document.getElementById('jobFeed').innerHTML = liveJobs.length ? document.getElementById('jobFeed').innerHTML : '<div class="job-card"><div class="job-task">No on-chain jobs yet. Post the first one.</div></div>';
+  document.getElementById('somiFlow').innerHTML = txs.length ? txs.map(t => `
+    <div class="somi-tx">
+      <span class="somi-from">${t.from}</span>
+      <span class="somi-arrow">Ã¢â€ â€™</span>
+      <span class="somi-to">${t.to}</span>
+      <span class="somi-amt">+${t.amount} SOMI</span>
+      <span class="somi-time">${t.time}</span>
+    </div>
+  `).join('') : '<div class="somi-tx"><span class="somi-from">No escrow activity yet</span></div>';
+}
+
+async function syncLiveContracts() {
+  try {
+    await syncLiveWorkers();
+    await syncLiveJobs();
+  } catch (err) {
+    addActivity({ dot:'var(--warn)', title:'Live contract sync failed', sub: err.message, color:'var(--warn)' });
+  }
+}
+
+async function postRealJob(desc, input, cap, budget) {
+  const jobQueue = await getSignerContract('JobQueue');
+  const deadline = Math.floor(Date.now() / 1000) + 3600;
+  const taskData = input ? `${desc}\n\n${input}` : desc;
+  const tx = await jobQueue.postJob(cap, taskData, deadline, { value: ethers.parseEther(String(budget)) });
+  addActivity({ dot:'var(--accent)', title:'postJob transaction sent', sub: tx.hash, color:'var(--accent)' });
+  await tx.wait();
+  addActivity({ dot:'var(--accent3)', title:'Job posted on-chain', sub:'Waiting for orchestrator assignment', color:'var(--accent3)' });
+  await syncLiveContracts();
+}
+
+async function registerRealWorker() {
+  const registry = await getSignerContract('AgentRegistry');
+  const cap = document.getElementById('capability').value;
+  const bid = document.getElementById('workerBid').value || '5';
+  const stake = document.getElementById('workerStake').value || '0.01';
+  const tx = await registry.register([cap], ethers.parseEther(String(bid)), { value: ethers.parseEther(String(stake)) });
+  addActivity({ dot:'var(--accent)', title:'Worker registration sent', sub: tx.hash, color:'var(--accent)' });
+  await tx.wait();
+  addActivity({ dot:'var(--accent3)', title:`Worker registered for ${cap.toUpperCase()}`, sub:`Bid ${bid} SOMI Ã‚Â· Stake ${stake} SOMI`, color:'var(--accent3)' });
+  await syncLiveContracts();
+}
+
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ FORM SUBMIT WITH AIML API ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 document.getElementById('submitBtn').addEventListener('click', async () => {
   const desc = document.getElementById('taskDesc').value.trim();
   const input = document.getElementById('taskInput').value.trim();
   const cap = document.getElementById('capability').value;
   const budget = parseInt(document.getElementById('budget').value) || 100;
 
-  if (!desc) { document.getElementById('resultText').textContent = '⚠ Please enter a task description.'; return; }
+  if (!desc) { document.getElementById('resultText').textContent = 'ÃƒÂ¢Ã…Â¡Ã‚Â  Please enter a task description.'; return; }
 
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
-  btn.textContent = '⟳ Dispatching to Orchestrator...';
+  btn.textContent = 'ÃƒÂ¢Ã…Â¸Ã‚Â³ Dispatching to Orchestrator...';
 
   const resultArea = document.getElementById('resultArea');
   const resultText = document.getElementById('resultText');
   resultArea.classList.add('result-typing');
   resultText.textContent = '';
 
+  if (window.ethers && localStorage.getItem('walletConnected') === 'true') {
+    try {
+      await postRealJob(desc, input, cap, budget);
+      resultArea.classList.remove('result-typing');
+      resultText.style.color = 'var(--accent3)';
+      resultText.textContent = 'Job posted on-chain. The live job feed will update as orchestrator and worker agents process it.';
+    } catch (err) {
+      resultArea.classList.remove('result-typing');
+      resultText.style.color = 'var(--warn)';
+      resultText.textContent = err.message || 'On-chain job posting failed.';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'ÃƒÂ¢Ã…Â¡Ã‚Â¡ Dispatch to Orchestrator';
+    }
+    return;
+  }
+
   // Simulate orchestrator selecting worker
   const selectedWorker = workers.filter(w => w.skill === cap.toUpperCase() && w.status !== 'idle').sort((a,b)=>a.bid-b.bid)[0];
   const job = addJob(desc, cap, budget, 'active');
 
   addActivity({ dot:'var(--accent)', title:'Orchestrator: querying registry via JSON API Agent', sub:`Searching for ${cap.toUpperCase()} capability...`, color:'var(--accent)' });
-  setTimeout(() => addActivity({ dot:'var(--accent2)', title:`LLM selected: ${selectedWorker.name}`, sub:`Cheapest qualified · ${selectedWorker.bid} SOMI · Rating ${selectedWorker.rating}★`, color:'var(--accent2)' }), 800);
-  setTimeout(() => addActivity({ dot:'var(--warn)', title:`SOMI locked: ${budget} wei in escrow`, sub:`EscrowPayment.sol · tx hash: 0x${Math.random().toString(16).slice(2,10)}`, color:'var(--warn)' }), 1400);
+  setTimeout(() => addActivity({ dot:'var(--accent2)', title:`LLM selected: ${selectedWorker.name}`, sub:`Cheapest qualified Ãƒâ€šÃ‚Â· ${selectedWorker.bid} SOMI Ãƒâ€šÃ‚Â· Rating ${selectedWorker.rating}ÃƒÂ¢Ã‹Å“Ã¢â‚¬Â¦`, color:'var(--accent2)' }), 800);
+  setTimeout(() => addActivity({ dot:'var(--warn)', title:`SOMI locked: ${budget} wei in escrow`, sub:`EscrowPayment.sol Ãƒâ€šÃ‚Â· tx hash: 0x${Math.random().toString(16).slice(2,10)}`, color:'var(--warn)' }), 1400);
 
   // Call AIML API
   const prompt = cap === 'translate'
-    ? `You are a translation agent on the AgentMarket blockchain. Task: "${desc}"\n\nInput: "${input||'[No input provided — generate a relevant example output]'}"\n\nDeliver the result concisely as a worker agent would. Include: 1) The translation/result, 2) A brief quality note.`
+    ? `You are a translation agent on the AgentMarket blockchain. Task: "${desc}"\n\nInput: "${input||'[No input provided ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â generate a relevant example output]'}"\n\nDeliver the result concisely as a worker agent would. Include: 1) The translation/result, 2) A brief quality note.`
     : cap === 'summarise'
-    ? `You are a summarisation agent on the AgentMarket blockchain. Task: "${desc}"\n\nInput: "${input||'[No input — generate an example summary output]'}"\n\nReturn a concise summary with 3 bullet points as a worker agent would.`
+    ? `You are a summarisation agent on the AgentMarket blockchain. Task: "${desc}"\n\nInput: "${input||'[No input ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â generate an example summary output]'}"\n\nReturn a concise summary with 3 bullet points as a worker agent would.`
     : cap === 'classify'
-    ? `You are a classification agent on the AgentMarket blockchain. Task: "${desc}"\n\nInput: "${input||'[No input — generate example classifications]'}"\n\nReturn classifications with confidence scores as a worker agent would.`
-    : `You are a sentiment analysis agent on the AgentMarket blockchain. Task: "${desc}"\n\nInput: "${input||'[No input — generate example sentiment output]'}"\n\nReturn sentiment scores and breakdown as a worker agent would.`;
+    ? `You are a classification agent on the AgentMarket blockchain. Task: "${desc}"\n\nInput: "${input||'[No input ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â generate example classifications]'}"\n\nReturn classifications with confidence scores as a worker agent would.`
+    : `You are a sentiment analysis agent on the AgentMarket blockchain. Task: "${desc}"\n\nInput: "${input||'[No input ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â generate example sentiment output]'}"\n\nReturn sentiment scores and breakdown as a worker agent would.`;
 
   // Stream-style display of simulated agent execution output to bypass external CORS limitations gracefully
   resultText.style.color = 'var(--accent3)';
@@ -583,7 +899,7 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     responseText = `AGENT RESULT [TRANSLATE]: Autonomous translation pipeline executed successfully via agent_${selectedWorker.id}.
 - Source Language: English (auto-detected)
 - Target Language: Japanese / German (L1 context-aware)
-- Result: "分散型エージェントエコシステムへようこそ。SOMIトークンによる自動決済が確認されました。"
+- Result: "ÃƒÂ¥Ã‹â€ Ã¢â‚¬Â ÃƒÂ¦Ã¢â‚¬Â¢Ã‚Â£ÃƒÂ¥Ã…Â¾Ã¢â‚¬Â¹ÃƒÂ£Ã¢â‚¬Å¡Ã‚Â¨ÃƒÂ£Ã†â€™Ã‚Â¼ÃƒÂ£Ã¢â‚¬Å¡Ã‚Â¸ÃƒÂ£Ã¢â‚¬Å¡Ã‚Â§ÃƒÂ£Ã†â€™Ã‚Â³ÃƒÂ£Ã†â€™Ã‹â€ ÃƒÂ£Ã¢â‚¬Å¡Ã‚Â¨ÃƒÂ£Ã¢â‚¬Å¡Ã‚Â³ÃƒÂ£Ã¢â‚¬Å¡Ã‚Â·ÃƒÂ£Ã¢â‚¬Å¡Ã‚Â¹ÃƒÂ£Ã†â€™Ã¢â‚¬Â ÃƒÂ£Ã†â€™Ã‚Â ÃƒÂ£Ã‚ÂÃ‚Â¸ÃƒÂ£Ã¢â‚¬Å¡Ã‹â€ ÃƒÂ£Ã‚ÂÃ¢â‚¬Â ÃƒÂ£Ã‚ÂÃ¢â‚¬Å“ÃƒÂ£Ã‚ÂÃ‚ÂÃƒÂ£Ã¢â€šÂ¬Ã¢â‚¬Å¡SOMIÃƒÂ£Ã†â€™Ã‹â€ ÃƒÂ£Ã†â€™Ã‚Â¼ÃƒÂ£Ã¢â‚¬Å¡Ã‚Â¯ÃƒÂ£Ã†â€™Ã‚Â³ÃƒÂ£Ã‚ÂÃ‚Â«ÃƒÂ£Ã¢â‚¬Å¡Ã‹â€ ÃƒÂ£Ã¢â‚¬Å¡Ã¢â‚¬Â¹ÃƒÂ¨Ã¢â‚¬Â¡Ã‚ÂªÃƒÂ¥Ã¢â‚¬Â¹Ã¢â‚¬Â¢ÃƒÂ¦Ã‚Â±Ã‚ÂºÃƒÂ¦Ã‚Â¸Ã‹â€ ÃƒÂ£Ã‚ÂÃ…â€™ÃƒÂ§Ã‚Â¢Ã‚ÂºÃƒÂ¨Ã‚ÂªÃ‚ÂÃƒÂ£Ã‚ÂÃ¢â‚¬Â¢ÃƒÂ£Ã¢â‚¬Å¡Ã…â€™ÃƒÂ£Ã‚ÂÃ‚Â¾ÃƒÂ£Ã‚ÂÃ¢â‚¬â€ÃƒÂ£Ã‚ÂÃ…Â¸ÃƒÂ£Ã¢â€šÂ¬Ã¢â‚¬Å¡"
 - Consensus Score: 99.8% | Audit: PASSED (Deterministic seed matches perfectly).`;
   } else if (cap === 'summarise') {
     responseText = `AGENT RESULT [SUMMARISE]: Document analyzed and compressed by worker agent_${selectedWorker.id}.
@@ -616,10 +932,10 @@ Key Briefs:
       // finalize job
       setTimeout(() => {
         promoteJob(job.id, 'done');
-        addActivity({ dot:'var(--accent3)', title:`Worker result verified by Somnia consensus`, sub:`Audit receipt: 0x${Math.random().toString(16).slice(2,18)} · 1.1s`, color:'var(--accent3)' });
+        addActivity({ dot:'var(--accent3)', title:`Worker result verified by Somnia consensus`, sub:`Audit receipt: 0x${Math.random().toString(16).slice(2,18)} Ãƒâ€šÃ‚Â· 1.1s`, color:'var(--accent3)' });
         addSomiTx('escrow', selectedWorker.name, Math.floor(budget*0.7));
         btn.disabled = false;
-        btn.textContent = '⚡ Dispatch to Orchestrator';
+        btn.textContent = 'ÃƒÂ¢Ã…Â¡Ã‚Â¡ Dispatch to Orchestrator';
       }, 500);
     }
   }
@@ -628,31 +944,170 @@ Key Briefs:
   setTimeout(typeChar, 800);
 });
 
-// WALLET INTEGRATION & REDIRECT FLOW
-const walletBtn = document.getElementById('walletBtn');
+document.getElementById('registerWorkerBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('registerWorkerBtn');
+  btn.disabled = true;
+  btn.textContent = 'Registering Worker...';
+  try {
+    await registerRealWorker();
+  } catch (err) {
+    addActivity({ dot:'var(--warn)', title:'Worker registration failed', sub: err.message, color:'var(--warn)' });
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Register Worker';
+  }
+});
 
-function checkWalletAuth() {
-  if (localStorage.getItem('walletConnected') !== 'true') {
-    window.location.href = 'index.html';
-  } else {
-    // Populate active connected wallet state in topbar
-    const walletType = localStorage.getItem('walletType') || 'wallet';
-    walletBtn.textContent = '0x7f...3a9b [Disconnect]';
-    walletBtn.style.color = 'var(--warn)';
-    walletBtn.style.borderColor = 'rgba(255,107,53,0.3)';
-    addActivity({ dot:'var(--accent3)', title:`Wallet connected: 0x7f...3a9b (${walletType})`, sub:'Balance: 2,400 SOMI · Somnia Testnet', color:'var(--accent3)' });
+// WALLET INTEGRATION
+const walletBtn = document.getElementById('walletBtn');
+const SOMNIA_CHAIN_ID = '0xc488';
+const SOMNIA_PARAMS = {
+  chainId: SOMNIA_CHAIN_ID,
+  chainName: 'Somnia Testnet',
+  nativeCurrency: { name: 'SOMI', symbol: 'SOMI', decimals: 18 },
+  rpcUrls: ['https://dream-rpc.somnia.network'],
+  blockExplorerUrls: ['https://shannon-explorer.somnia.network']
+};
+
+function shortAddress(address) {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+function formatSomi(hexBalance) {
+  const wei = BigInt(hexBalance);
+  const whole = wei / 1000000000000000000n;
+  const fraction = (wei % 1000000000000000000n).toString().padStart(18, '0').slice(0, 4);
+  return `${whole}.${fraction}`.replace(/\.0+$/, '');
+}
+
+async function ensureSomniaNetwork() {
+  if (!window.ethereum) throw new Error('No injected EVM wallet found. Install MetaMask or another EVM wallet.');
+  try {
+    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: SOMNIA_CHAIN_ID }] });
+  } catch (err) {
+    if (err.code !== 4902) throw err;
+    await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [SOMNIA_PARAMS] });
   }
 }
 
-walletBtn.addEventListener('click', function() {
-  // Disconnect action
-  localStorage.removeItem('walletConnected');
-  localStorage.removeItem('walletType');
-  window.location.href = 'index.html';
-});
+function setDisconnectedWalletState() {
+  walletBtn.textContent = 'Connect Wallet';
+  walletBtn.style.color = '';
+  walletBtn.style.borderColor = '';
+}
 
-// Run auth check immediately
-checkWalletAuth();
+async function setConnectedWalletState(address) {
+  walletBtn.textContent = `${shortAddress(address)} [Disconnect]`;
+  walletBtn.style.color = 'var(--accent3)';
+  walletBtn.style.borderColor = 'rgba(0,255,157,0.4)';
+
+  let balanceLabel = 'Balance unavailable';
+  try {
+    const balance = await window.ethereum.request({ method: 'eth_getBalance', params: [address, 'latest'] });
+    balanceLabel = `Balance: ${formatSomi(balance)} SOMI Ã‚Â· Somnia Testnet`;
+  } catch {}
+
+  addActivity({
+    dot: 'var(--accent3)',
+    title: `Wallet connected: ${shortAddress(address)}`,
+    sub: balanceLabel,
+    color: 'var(--accent3)'
+  });
+}
+
+async function connectDashboardWallet() {
+  if (!window.ethereum) {
+    alert('No injected EVM wallet detected. Install MetaMask or another EVM wallet to connect.');
+    return;
+  }
+
+  try {
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const address = accounts[0];
+    if (!address) return;
+    await ensureSomniaNetwork();
+    localStorage.setItem('walletConnected', 'true');
+    localStorage.setItem('walletAddress', address);
+    localStorage.setItem('walletType', window.ethereum.isMetaMask ? 'MetaMask' : 'Injected Wallet');
+    await setConnectedWalletState(address);
+  } catch (err) {
+    alert(err.message || 'Wallet connection failed.');
+  }
+}
+
+function disconnectDashboardWallet() {
+  localStorage.removeItem('walletConnected');
+  localStorage.removeItem('walletAddress');
+  localStorage.removeItem('walletType');
+  setDisconnectedWalletState();
+  window.location.href = 'index.html';
+}
+
+async function initDashboardWallet() {
+  if (!window.ethereum) {
+    localStorage.removeItem('walletConnected');
+    localStorage.removeItem('walletAddress');
+    localStorage.removeItem('walletType');
+    window.location.href = 'index.html';
+    return;
+  } else {
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+      const address = accounts[0];
+      if (address) {
+        await ensureSomniaNetwork();
+        localStorage.setItem('walletConnected', 'true');
+        localStorage.setItem('walletAddress', address);
+        await setConnectedWalletState(address);
+      } else {
+        localStorage.removeItem('walletConnected');
+        localStorage.removeItem('walletAddress');
+        localStorage.removeItem('walletType');
+        window.location.href = 'index.html';
+        return;
+      }
+    } catch {
+      localStorage.removeItem('walletConnected');
+      localStorage.removeItem('walletAddress');
+      localStorage.removeItem('walletType');
+      window.location.href = 'index.html';
+      return;
+    }
+
+    window.ethereum.on?.('accountsChanged', async accounts => {
+      if (accounts[0]) {
+        localStorage.setItem('walletConnected', 'true');
+        localStorage.setItem('walletAddress', accounts[0]);
+        await setConnectedWalletState(accounts[0]);
+      } else {
+        disconnectDashboardWallet();
+      }
+    });
+  }
+
+  walletBtn.addEventListener('click', async () => {
+    if (localStorage.getItem('walletConnected') === 'true') {
+      disconnectDashboardWallet();
+    } else {
+      await connectDashboardWallet();
+    }
+  });
+}
+
+initDashboardWallet();
+syncLiveContracts();
+setInterval(syncLiveContracts, 3000);
+
+document.querySelectorAll('.nav-tabs .tab[href^="#"]').forEach(tab => {
+  tab.addEventListener('click', event => {
+    event.preventDefault();
+    const target = document.querySelector(tab.getAttribute('href'));
+    if (!target) return;
+    document.querySelectorAll('.nav-tabs .tab').forEach(item => item.classList.remove('active'));
+    tab.classList.add('active');
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
 </script>
 </body>
 </html>

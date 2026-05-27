@@ -7,6 +7,10 @@
     "dev": "npm-run-all --parallel start:orchestrator start:worker start:auditor",
     "start:orchestrator": "node agents/orchestrator/index.js",
     "start:worker": "node agents/workers/base.js",
+    "start:worker:translate": "node agents/workers/translate.js",
+    "start:worker:summarise": "node agents/workers/summarise.js",
+    "start:worker:classify": "node agents/workers/classify.js",
+    "start:worker:sentiment": "node agents/workers/sentiment.js",
     "start:auditor": "node agents/auditor/index.js",
     "test": "hardhat test"
   },
@@ -14,6 +18,7 @@
     "@openzeppelin/contracts": "^5.0.2",
     "dotenv": "^16.4.5",
     "ethers": "^6.9.0",
+    "winston": "^3.18.3",
     "ws": "^8.14.0"
   },
   "devDependencies": {
