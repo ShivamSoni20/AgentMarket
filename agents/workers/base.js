@@ -105,6 +105,14 @@ async function main() {
     }
   }
 
+  process.on('SIGINT', () => {
+    logger.info('Received SIGINT - shutting down gracefully');
+    process.exit(0);
+  });
+  process.on('SIGTERM', () => {
+    logger.info('Received SIGTERM - shutting down gracefully');
+    process.exit(0);
+  });
   setInterval(() => pollAssignments().catch(err => logger.error(`Worker poll failed: ${err.message}`)), 3000);
   setInterval(() => logger.debug("Worker heartbeat"), 30000);
   logger.info("Worker polling for assigned jobs...");

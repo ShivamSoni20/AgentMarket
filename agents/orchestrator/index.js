@@ -17,7 +17,8 @@ const JobQueueABI = [
 const AgentRegistryABI = [
   "function getWorkerCaps(address worker) external view returns (string[] memory)",
   "function workerList(uint256) external view returns (address)",
-  "function workers(address) external view returns (address owner, uint256 bidPerJob, uint256 stake, uint256 rating, uint256 jobsCompleted, bool active)"
+  "function workers(address) external view returns (address owner, uint256 bidPerJob, uint256 stake, uint256 rating, uint256 jobsCompleted, bool active)",
+  "function incrementJobs(address worker) external"
 ];
 
 async function getActiveWorkers(registry) {
@@ -90,6 +91,7 @@ async function main() {
 
   const jobQueue = new ethers.Contract(config.JOB_QUEUE_ADDRESS, JobQueueABI, wallet);
   const registry = new ethers.Contract(config.AGENT_REGISTRY_ADDRESS, AgentRegistryABI, provider);
+  const registryWriter = new ethers.Contract(config.AGENT_REGISTRY_ADDRESS, AgentRegistryABI, wallet);
   const assignedJobs = new Set();
   const completedJobs = new Set();
 
@@ -119,6 +121,12 @@ async function main() {
           await completeWithRetry(jobQueue, jobId);
           completedJobs.add(jobId);
           logger.info(`Job ${jobId} completed`);
+          try {
+            await registryWriter.incrementJobs(job.worker);
+            logger.info(`Incremented jobsCompleted for worker ${job.worker}`);
+          } catch (incErr) {
+            logger.warn(`incrementJobs failed for ${job.worker}: ${incErr.message}`);
+          }
           broadcast("orchestrator:completed", { jobId: jobId.toString(), resultHash: job.resultHash });
         } catch (err) {
           logger.error(`Failed to complete job ${jobId}: ${err.message}`);
@@ -127,6 +135,14 @@ async function main() {
     }
   }
 
+  process.on('SIGINT', () => {
+    logger.info('Received SIGINT - shutting down gracefully');
+    process.exit(0);
+  });
+  process.on('SIGTERM', () => {
+    logger.info('Received SIGTERM - shutting down gracefully');
+    process.exit(0);
+  });
   setInterval(() => pollJobs().catch(err => logger.error(`Orchestrator poll failed: ${err.message}`)), 3000);
   setInterval(() => logger.debug("Orchestrator heartbeat"), 30000);
   logger.info("Orchestrator polling for jobs…");

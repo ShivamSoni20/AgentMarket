@@ -5,6 +5,10 @@
   "main": "hardhat.config.js",
   "scripts": {
     "dev": "npm-run-all --parallel start:orchestrator start:worker start:auditor",
+    "compile": "hardhat compile",
+    "node:local": "hardhat node",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "deploy:testnet": "hardhat run scripts/deploy.js --network somnia-testnet",
     "start:orchestrator": "node agents/orchestrator/index.js",
     "start:worker": "node agents/workers/base.js",
     "start:worker:translate": "node agents/workers/translate.js",

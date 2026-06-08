@@ -76,8 +76,8 @@ describe("AgentMarket Smart Contracts Suite", function () {
   it("Should restrict registry admin functions to owner", async function () {
     await registry.connect(worker).register(["translate"], ethers.parseEther("1"), { value: MIN_STAKE });
 
-    await expect(registry.connect(worker).slash(await worker.getAddress())).to.be.revertedWith("not owner");
-    await expect(registry.connect(worker).incrementJobs(await worker.getAddress())).to.be.revertedWith("not owner");
+    await expect(registry.connect(worker).slash(await worker.getAddress())).to.be.revertedWith("not authorized");
+    await expect(registry.connect(worker).incrementJobs(await worker.getAddress())).to.be.revertedWith("not authorized");
   });
 
   it("Should let DisputeResolver slash a worker after authorization handoff", async function () {

@@ -51,6 +51,14 @@ async function main() {
     }
   }
 
+  process.on('SIGINT', () => {
+    logger.info('Received SIGINT - shutting down gracefully');
+    process.exit(0);
+  });
+  process.on('SIGTERM', () => {
+    logger.info('Received SIGTERM - shutting down gracefully');
+    process.exit(0);
+  });
   setInterval(() => pollCompletedJobs().catch(err => logger.error(`Auditor poll failed: ${err.message}`)), 5000);
   setInterval(() => logger.debug("Auditor heartbeat"), 30000);
   logger.info(`Auditor polling for completed jobs (sampling ${SAMPLE_RATE * 100}%)...`);

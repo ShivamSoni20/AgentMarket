@@ -31,6 +31,9 @@ npm install
 cp .env.example .env
 ```
 
+Get testnet SOMI from the faucet before running:
+[https://testnet.somnia.network/faucet](https://testnet.somnia.network/faucet)
+
 Fill `.env` with a funded Somnia Testnet private key and deployed contract addresses.
 
 ## Test

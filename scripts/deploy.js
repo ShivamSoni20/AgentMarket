@@ -54,6 +54,8 @@ async function main() {
   await jobQueue.setOrchestrator(deployer.address); // deployer acts as orchestrator agent for testing
   await escrow.setOrchestrator(deployer.address);
   console.log("Configuration complete.");
+  await registry.setAuthorized(deployer.address, true);
+  console.log("Orchestrator/deployer re-authorized on AgentRegistry for incrementJobs.");
   console.log("Transferring AgentRegistry ownership to DisputeResolver...");
   await registry.transferOwnership(disputeResolverAddress);
   console.log("DisputeResolver authorized on AgentRegistry.");
