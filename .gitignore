@@ -5,3 +5,5 @@ artifacts/
 .vscode/
 grep.exe.stackdump
 *.log
+.hardhat-appdata/
+.hardhat-localappdata/

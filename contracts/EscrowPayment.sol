@@ -14,6 +14,7 @@ contract EscrowPayment {
     mapping(address => bool) public authorized;
     address public owner;
     address public orchestrator;
+    bool private locked;
 
     event EscrowLocked(uint256 indexed jobId, address indexed payer, uint256 amount);
     event EscrowPayeeSet(uint256 indexed jobId, address indexed payee);
@@ -29,6 +30,13 @@ contract EscrowPayment {
     modifier onlyAuthorized() {
         require(authorized[msg.sender], "not authorized");
         _;
+    }
+
+    modifier nonReentrant() {
+        require(!locked, "reentrant");
+        locked = true;
+        _;
+        locked = false;
     }
 
     constructor() {
@@ -65,23 +73,37 @@ contract EscrowPayment {
         emit EscrowPayeeSet(jobId, payee);
     }
 
-    function release(uint256 jobId) external onlyAuthorized {
+    function release(uint256 jobId) external onlyAuthorized nonReentrant {
         Escrow storage e = escrows[jobId];
         require(e.amount > 0, "missing escrow");
         require(e.payee != address(0), "missing payee");
         require(!e.released && !e.disputed, "invalid status");
         e.released = true;
-        payable(e.payee).transfer(e.amount);
+        (bool ok, ) = payable(e.payee).call{value: e.amount}("");
+        require(ok, "release failed");
         emit EscrowReleased(jobId, e.payee, e.amount);
     }
 
-    function refund(uint256 jobId) external onlyAuthorized {
+    function refund(uint256 jobId) external onlyAuthorized nonReentrant {
         Escrow storage e = escrows[jobId];
         require(e.amount > 0, "missing escrow");
         require(!e.released, "already released");
         e.released = true;
-        payable(e.payer).transfer(e.amount);
+        (bool ok, ) = payable(e.payer).call{value: e.amount}("");
+        require(ok, "refund failed");
         emit EscrowRefunded(jobId, e.payer, e.amount);
+    }
+
+    function releaseDisputed(uint256 jobId) external onlyAuthorized nonReentrant {
+        Escrow storage e = escrows[jobId];
+        require(e.amount > 0, "missing escrow");
+        require(e.payee != address(0), "missing payee");
+        require(!e.released && e.disputed, "invalid status");
+        e.released = true;
+        e.disputed = false;
+        (bool ok, ) = payable(e.payee).call{value: e.amount}("");
+        require(ok, "release failed");
+        emit EscrowReleased(jobId, e.payee, e.amount);
     }
 
     function flagDisputed(uint256 jobId) external onlyAuthorized {

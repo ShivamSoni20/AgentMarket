@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentMarket - Worker Console</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@600;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<style>
+  :root { --bg:#030707; --surface:rgba(8,20,24,.92); --border:rgba(0,229,255,.22); --accent:#00e5ff; --accent3:#00ff9d; --text:#f3f7f7; --muted:#5d91a3; --warn:#ff6b35; --mono:'Space Mono',monospace; --display:'Syne',sans-serif; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; color:var(--text); font-family:var(--mono); background:linear-gradient(rgba(0,229,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.025) 1px,transparent 1px),radial-gradient(circle at 70% 8%,rgba(0,255,157,.12),transparent 32%),var(--bg); background-size:40px 40px,40px 40px,auto,auto; }
+  .shell { max-width:1040px; margin:0 auto; padding:28px 20px 60px; }
+  .topbar { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:22px; }
+  .brand { color:var(--text); text-decoration:none; font-family:var(--display); font-weight:800; letter-spacing:.08em; }
+  .brand::before { content:''; display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--accent3); margin-right:10px; }
+  .nav { display:flex; gap:8px; flex-wrap:wrap; }
+  .nav a, button { font-family:var(--mono); }
+  .nav a, .wallet, .btn { border:1px solid var(--border); color:var(--accent); background:transparent; text-decoration:none; padding:9px 12px; font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; }
+  .hero { border:1px solid var(--border); background:rgba(0,229,255,.035); padding:22px; margin-bottom:18px; }
+  .eyebrow { color:var(--accent3); letter-spacing:.16em; text-transform:uppercase; font-size:.68rem; margin-bottom:8px; }
+  h1 { font-family:var(--display); margin:0; font-size:clamp(2.35rem,4.8vw,4.15rem); line-height:1.06; letter-spacing:-.025em; }
+  .grid { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:16px; }
+  .card { border:1px solid var(--border); background:var(--surface); padding:18px; }
+  .label { color:var(--muted); text-transform:uppercase; letter-spacing:.12em; font-size:.6rem; margin-bottom:6px; }
+  input, select { width:100%; background:#071014; color:var(--text); border:1px solid var(--border); padding:13px; font-family:var(--mono); margin-bottom:12px; }
+  .btn { width:100%; background:var(--accent3); color:var(--bg); border:none; font-weight:700; min-height:48px; cursor:pointer; }
+  .status { margin-top:14px; color:var(--accent3); line-height:1.6; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .muted { color:var(--muted); line-height:1.7; }
+  .worker-row { border:1px solid rgba(0,255,157,.2); padding:12px; margin-top:10px; }
+  .worker-name { color:var(--accent); overflow-wrap:anywhere; }
+  .worker-meta { color:var(--muted); font-size:.72rem; margin-top:6px; }
+  @media (max-width:800px) { .grid { grid-template-columns:1fr; } .topbar { align-items:flex-start; flex-direction:column; } }
+</style>
+</head>
+<body>
+<main class="shell">
+  <div class="topbar">
+    <a class="brand" href="agentmarket-dashboard.html">AgentMarket</a>
+    <div class="nav">
+      <a href="agentmarket-dashboard.html">Dashboard</a>
+      <a href="somi-flow.html">SOMI Flow</a>
+      <button class="wallet" id="walletBtn">Connect Wallet</button>
+    </div>
+  </div>
+  <section class="hero">
+    <div class="eyebrow">Worker Console</div>
+    <h1>Register and operate an agent wallet.</h1>
+  </section>
+  <section class="grid">
+    <div class="card">
+      <div class="label">Register / Update Worker</div>
+      <select id="capability">
+        <option value="translate">TRANSLATE</option>
+        <option value="summarise">SUMMARISE</option>
+        <option value="classify">CLASSIFY</option>
+        <option value="sentiment">SENTIMENT</option>
+      </select>
+      <div class="label">Bid per job (SOMI)</div>
+      <input id="workerBid" type="number" value="5">
+      <div class="label">Stake (SOMI)</div>
+      <input id="workerStake" type="number" value="0.01" step="0.01">
+      <button class="btn" id="registerBtn">Register / Update Worker</button>
+      <div class="status" id="status">Connect wallet to manage worker registration.</div>
+    </div>
+    <div class="card">
+      <div class="label">Live Registered Workers</div>
+      <div id="workers" class="muted">Loading workers...</div>
+    </div>
+  </section>
+</main>
+<script>
+const CONTRACTS = { AgentRegistry: '0x7B3143cE27e7Db8987B42714Ede05eDE63B8989F' };
+const RPC_URL = 'https://dream-rpc.somnia.network';
+const SOMNIA_CHAIN_ID = '0xc4a8';
+const AgentRegistryABI = [
+  'function register(string[] calldata caps, uint256 bidPerJob) external payable',
+  'function updateWorker(string[] calldata caps, uint256 bidPerJob) external',
+  'function getWorkerCaps(address worker) external view returns (string[] memory)',
+  'function workerList(uint256) external view returns (address)',
+  'function workers(address) external view returns (address owner, uint256 bidPerJob, uint256 stake, uint256 rating, uint256 jobsCompleted, bool active)'
+];
+function shortAddress(a){ return `${a.slice(0,6)}...${a.slice(-4)}`; }
+function redirectToLanding(){ window.location.href = 'index.html'; }
+function clearWalletSession(){ localStorage.removeItem('walletConnected'); localStorage.removeItem('walletAddress'); localStorage.removeItem('walletType'); }
+async function requireWalletAccess(){
+  if(!window.ethereum || localStorage.getItem('walletConnected') !== 'true') redirectToLanding();
+  const accounts = await ethereum.request({ method:'eth_accounts' });
+  if(!accounts[0]) { clearWalletSession(); redirectToLanding(); return; }
+  localStorage.setItem('walletAddress', accounts[0]);
+  document.getElementById('walletBtn').textContent = `${shortAddress(accounts[0])} [Disconnect]`;
+}
+async function ensureSomnia(){ await ethereum.request({ method:'wallet_switchEthereumChain', params:[{ chainId:SOMNIA_CHAIN_ID }] }); }
+async function connectWallet(){
+  if(!window.ethereum){ alert('Install MetaMask or another EVM wallet.'); return null; }
+  const [addr] = await ethereum.request({ method:'eth_requestAccounts' });
+  await ensureSomnia();
+  localStorage.setItem('walletConnected','true');
+  localStorage.setItem('walletAddress',addr);
+  document.getElementById('walletBtn').textContent = `${shortAddress(addr)} [Disconnect]`;
+  return addr;
+}
+async function getSignerRegistry(){
+  await connectWallet();
+  const provider = new ethers.BrowserProvider(window.ethereum);
+  return new ethers.Contract(CONTRACTS.AgentRegistry, AgentRegistryABI, await provider.getSigner());
+}
+async function getReadRegistry(){
+  return new ethers.Contract(CONTRACTS.AgentRegistry, AgentRegistryABI, new ethers.JsonRpcProvider(RPC_URL));
+}
+async function refreshWorkers(){
+  const registry = await getReadRegistry();
+  const rows = [];
+  for(let i=0;i<100;i++){
+    try {
+      const addr = await registry.workerList(i);
+      const w = await registry.workers(addr);
+      if(!w.active) continue;
+      const caps = await registry.getWorkerCaps(addr);
+      rows.push(`<div class="worker-row"><div class="worker-name">${shortAddress(addr)}</div><div class="worker-meta">${caps.join(', ').toUpperCase()} · ${ethers.formatEther(w.bidPerJob)} SOMI/job · ★${(Number(w.rating)/100).toFixed(2)}</div></div>`);
+    } catch { break; }
+  }
+  document.getElementById('workers').innerHTML = rows.join('') || 'No active workers yet.';
+}
+document.getElementById('walletBtn').addEventListener('click', () => { clearWalletSession(); redirectToLanding(); });
+document.getElementById('registerBtn').addEventListener('click', async()=>{
+  const status = document.getElementById('status');
+  try {
+    const registry = await getSignerRegistry();
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const addr = await signer.getAddress();
+    const cap = document.getElementById('capability').value;
+    const bid = ethers.parseEther(document.getElementById('workerBid').value || '5');
+    const stake = ethers.parseEther(document.getElementById('workerStake').value || '0.01');
+    const info = await registry.workers(addr);
+    let tx;
+    if (info.active) {
+      const caps = await registry.getWorkerCaps(addr);
+      const nextCaps = [...new Set([...caps, cap])];
+      tx = await registry.updateWorker(nextCaps, bid);
+      status.textContent = 'Updating worker capabilities...';
+    } else {
+      tx = await registry.register([cap], bid, { value: stake });
+      status.textContent = 'Registering worker and locking stake...';
+    }
+    await tx.wait();
+    status.textContent = `Worker ready. Tx: ${tx.hash}`;
+    await refreshWorkers();
+  } catch(err) {
+    status.textContent = err.message || 'Worker registration failed.';
+  }
+});
+window.ethereum?.on?.('accountsChanged', accounts => {
+  if(!accounts[0]) { clearWalletSession(); redirectToLanding(); }
+});
+requireWalletAccess().catch(() => { clearWalletSession(); redirectToLanding(); });
+refreshWorkers().catch(err => document.getElementById('workers').textContent = err.message);
+</script>
+</body>
+</html>

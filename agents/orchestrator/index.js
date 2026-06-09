@@ -1,7 +1,7 @@
 const { ethers } = require("ethers");
 require("dotenv").config();
 
-const { broadcast } = require("../lib/wsServer");
+const { broadcast, getWss } = require("../lib/wsServer");
 const logger = require("../lib/logger");
 const config = require("../lib/config");
 
@@ -11,7 +11,8 @@ const JobQueueABI = [
   "function assignJob(uint256 id, address worker) external",
   "function completeJob(uint256 id) external",
   "function nextJobId() external view returns (uint256)",
-  "function jobs(uint256) view returns (uint256 id, address poster, string capability, string taskData, uint256 budget, address worker, bytes32 resultHash, string resultData, uint8 status, uint256 createdAt, uint256 deadline)"
+  "function auditWindow() external view returns (uint256)",
+  "function jobs(uint256) view returns (uint256 id, address poster, string capability, string taskData, uint256 budget, address worker, bytes32 resultHash, string resultURI, uint8 status, uint256 createdAt, uint256 deadline, uint256 submittedAt)"
 ];
 
 const AgentRegistryABI = [
@@ -20,6 +21,8 @@ const AgentRegistryABI = [
   "function workers(address) external view returns (address owner, uint256 bidPerJob, uint256 stake, uint256 rating, uint256 jobsCompleted, bool active)",
   "function incrementJobs(address worker) external"
 ];
+
+const SCAN_WINDOW = Number(process.env.ORCHESTRATOR_SCAN_WINDOW || "200");
 
 async function getActiveWorkers(registry) {
   const workers = [];
@@ -80,13 +83,14 @@ async function completeWithRetry(jobQueue, id, maxAttempts = 3) {
 }
 
 async function main() {
-  if (!config.PRIVATE_KEY) throw new Error("PRIVATE_KEY not set in .env");
+  if (!config.ORCHESTRATOR_PRIVATE_KEY) throw new Error("ORCHESTRATOR_PRIVATE_KEY or PRIVATE_KEY not set in .env");
   if (!config.JOB_QUEUE_ADDRESS) throw new Error("JOB_QUEUE_ADDRESS not set in .env");
   if (!config.AGENT_REGISTRY_ADDRESS) throw new Error("AGENT_REGISTRY_ADDRESS not set in .env");
 
   logger.info("Orchestrator daemon starting…");
+  getWss();
   const provider = new ethers.JsonRpcProvider(config.RPC_URL);
-  const wallet = new ethers.Wallet(config.PRIVATE_KEY, provider);
+  const wallet = new ethers.Wallet(config.ORCHESTRATOR_PRIVATE_KEY, provider);
   logger.info(`Orchestrator address: ${wallet.address}`);
 
   const jobQueue = new ethers.Contract(config.JOB_QUEUE_ADDRESS, JobQueueABI, wallet);
@@ -97,7 +101,9 @@ async function main() {
 
   async function pollJobs() {
     const nextJobId = Number(await jobQueue.nextJobId());
-    for (let jobId = 0; jobId < nextJobId; jobId++) {
+    const auditWindow = Number(await jobQueue.auditWindow());
+    const now = Math.floor(Date.now() / 1000);
+    for (let jobId = Math.max(0, nextJobId - SCAN_WINDOW); jobId < nextJobId; jobId++) {
       const job = await jobQueue.jobs(jobId);
 
       if (Number(job.status) === 0 && !assignedJobs.has(jobId)) {
@@ -115,10 +121,14 @@ async function main() {
         }
       }
 
-      if (Number(job.status) === 1 && job.resultHash !== ethers.ZeroHash && !completedJobs.has(jobId)) {
+      if (Number(job.status) === 2 && job.resultHash !== ethers.ZeroHash && !completedJobs.has(jobId)) {
         logger.info(`Submitted result detected – id:${jobId} hash:${job.resultHash}`);
+        if (now < Number(job.submittedAt) + auditWindow) {
+          logger.debug(`Job ${jobId} waiting for audit window`);
+          continue;
+        }
         try {
-          await completeWithRetry(jobQueue, jobId);
+          const completionTx = await completeWithRetry(jobQueue, jobId);
           completedJobs.add(jobId);
           logger.info(`Job ${jobId} completed`);
           try {
@@ -127,7 +137,13 @@ async function main() {
           } catch (incErr) {
             logger.warn(`incrementJobs failed for ${job.worker}: ${incErr.message}`);
           }
-          broadcast("orchestrator:completed", { jobId: jobId.toString(), resultHash: job.resultHash });
+          broadcast("orchestrator:completed", {
+            jobId: jobId.toString(),
+            resultHash: job.resultHash,
+            worker: job.worker,
+            budget: ethers.formatEther(job.budget),
+            txHash: completionTx.hash
+          });
         } catch (err) {
           logger.error(`Failed to complete job ${jobId}: ${err.message}`);
         }

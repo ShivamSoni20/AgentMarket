@@ -10,6 +10,10 @@ const hre = require("hardhat");
 
 async function main() {
   console.log("Starting deployment of AgentMarket smart contracts...");
+  const [deployer] = await hre.ethers.getSigners();
+  const orchestratorAddress = process.env.ORCHESTRATOR_ADDRESS || deployer.address;
+  const auditorAddress = process.env.AUDITOR_ADDRESS || deployer.address;
+  const auditWindow = Number(process.env.AUDIT_WINDOW_SECONDS || "60");
 
   // 1. Deploy AgentRegistry
   const AgentRegistry = await hre.ethers.getContractFactory("AgentRegistry");
@@ -32,14 +36,13 @@ async function main() {
   const escrowAddress = await escrow.getAddress();
   console.log(`EscrowPayment deployed to: ${escrowAddress}`);
 
-  // 4. Deploy DisputeResolver (auditor address set as owner for mock/test convenience)
-  const [deployer] = await hre.ethers.getSigners();
+  // 4. Deploy DisputeResolver
   const DisputeResolver = await hre.ethers.getContractFactory("DisputeResolver");
   const disputeResolver = await DisputeResolver.deploy(
     registryAddress,
     jobQueueAddress,
     escrowAddress,
-    deployer.address // Set deployer as default auditor for simplicity in local setups
+    auditorAddress
   );
   await disputeResolver.waitForDeployment();
   const disputeResolverAddress = await disputeResolver.getAddress();
@@ -47,15 +50,14 @@ async function main() {
 
   // Configure permissions
   console.log("Configuring contracts authorization...");
-  // NOTE: In production, call jobQueue.setOrchestrator(orchestratorAgentWalletAddress)
-  // using the same address as PRIVATE_KEY in agents/.env
   await escrow.setAuthorized(jobQueueAddress, true);
   await jobQueue.setEscrow(escrowAddress);
-  await jobQueue.setOrchestrator(deployer.address); // deployer acts as orchestrator agent for testing
-  await escrow.setOrchestrator(deployer.address);
+  await jobQueue.setAuditWindow(auditWindow);
+  await jobQueue.setOrchestrator(orchestratorAddress);
+  await escrow.setOrchestrator(orchestratorAddress);
   console.log("Configuration complete.");
-  await registry.setAuthorized(deployer.address, true);
-  console.log("Orchestrator/deployer re-authorized on AgentRegistry for incrementJobs.");
+  await registry.setAuthorized(orchestratorAddress, true);
+  console.log("Orchestrator authorized on AgentRegistry for incrementJobs.");
   console.log("Transferring AgentRegistry ownership to DisputeResolver...");
   await registry.transferOwnership(disputeResolverAddress);
   console.log("DisputeResolver authorized on AgentRegistry.");
@@ -71,7 +73,10 @@ async function main() {
     AgentRegistry: registryAddress,
     JobQueue: jobQueueAddress,
     EscrowPayment: escrowAddress,
-    DisputeResolver: disputeResolverAddress
+    DisputeResolver: disputeResolverAddress,
+    Orchestrator: orchestratorAddress,
+    Auditor: auditorAddress,
+    AuditWindowSeconds: auditWindow
   });
 
   const fs = require("fs");

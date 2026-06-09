@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="agentmarket-ws-url" content="">
 <title>AgentMarket &mdash; Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
@@ -103,7 +104,7 @@
   .delta-down { color: var(--warn); }
 
   /* CONTENT AREA */
-  .content { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(420px, 520px); grid-template-rows: minmax(620px, auto) minmax(420px, auto); overflow: visible; }
+  .content { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(420px, 520px); grid-template-rows: auto auto minmax(300px, auto); align-items: start; overflow: visible; }
 
   /* JOB FEED */
   .panel { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
@@ -118,12 +119,13 @@
   .panel-action { font-family: var(--mono); font-size: 0.6rem; color: var(--muted); letter-spacing: 0.1em; cursor: none; background: transparent; border: 1px solid var(--border); padding: 4px 12px; transition: all 0.2s; }
   .panel-action:hover { border-color: var(--accent); color: var(--accent); }
 
-  .job-feed { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .job-feed { overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; min-height: 96px; max-height: clamp(180px, 38vh, 520px); }
+  #jobsSection { min-height: 0; }
   .job-feed::-webkit-scrollbar { width: 3px; }
   .job-feed::-webkit-scrollbar-track { background: transparent; }
   .job-feed::-webkit-scrollbar-thumb { background: var(--border); }
 
-  .job-card { background: var(--surface); border: 1px solid var(--border2); padding: 14px 16px; cursor: none; transition: border-color 0.2s, background 0.2s; animation: slideIn 0.3s ease; }
+  .job-card { background: var(--surface); border: 1px solid var(--border2); padding: 16px 18px; cursor: none; transition: border-color 0.2s, background 0.2s; animation: slideIn 0.3s ease; }
   .job-card:hover { border-color: var(--accent); background: var(--surface2); }
   @keyframes slideIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
 
@@ -132,26 +134,38 @@
   .job-status { font-family: var(--mono); font-size: 0.58rem; padding: 2px 8px; border-radius: 0; letter-spacing: 0.08em; }
   .status-pending { background: rgba(255,107,53,0.12); color: var(--warn); border: 1px solid rgba(255,107,53,0.3); }
   .status-active { background: rgba(0,229,255,0.08); color: var(--accent); border: 1px solid rgba(0,229,255,0.25); }
+  .status-submitted { background: rgba(255,206,0,0.08); color: #ffce00; border: 1px solid rgba(255,206,0,0.25); }
   .status-done { background: rgba(0,255,157,0.08); color: var(--accent3); border: 1px solid rgba(0,255,157,0.25); }
+  .status-disputed { background: rgba(255,107,53,0.12); color: var(--warn); border: 1px solid rgba(255,107,53,0.3); }
+  .status-resolved, .status-cancelled { background: rgba(138,92,255,0.08); color: var(--accent2); border: 1px solid rgba(138,92,255,0.25); }
   .job-task { font-family: var(--mono); font-size: 0.72rem; color: var(--text); margin-bottom: 10px; line-height: 1.5; }
-  .job-meta { display: flex; gap: 16px; }
+  .job-meta { display: flex; gap: 16px; flex-wrap: wrap; }
   .job-meta-item { font-family: var(--mono); font-size: 0.6rem; color: var(--muted); display: flex; align-items: center; gap: 4px; }
   .job-meta-item span { color: var(--accent); }
+  .job-result-btn { margin-left: auto; background: transparent; border: 1px solid rgba(0,255,157,0.35); color: var(--accent3); font-family: var(--mono); font-size: 0.58rem; padding: 5px 10px; letter-spacing: 0.08em; text-transform: uppercase; cursor: none; }
+  .job-result-btn:hover { border-color: var(--accent3); box-shadow: 0 0 16px rgba(0,255,157,0.18); }
+
+  #jobsSection { grid-column: 1; grid-row: 1; }
+  .post-column { grid-column: 2; grid-row: 1 / span 2; }
+  .activity-panel { grid-column: 1; grid-row: 2 / span 2; }
 
   /* AGENT ACTIVITY (FLOW VIZ) */
-  .flow-viz { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .flow-viz { flex: 1; padding: 18px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; min-height: 360px; max-height: 620px; }
   .flow-step { display: flex; gap: 12px; align-items: flex-start; animation: slideIn 0.3s ease; }
-  .step-time { font-family: var(--mono); font-size: 0.58rem; color: var(--muted); flex-shrink: 0; width: 52px; padding-top: 2px; }
+  .step-time { font-family: var(--mono); font-size: 0.58rem; color: var(--muted); flex-shrink: 0; width: 58px; padding-top: 2px; }
   .step-line { display: flex; flex-direction: column; align-items: center; gap: 0; flex-shrink: 0; }
   .step-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .step-line-v { width: 1px; flex: 1; background: var(--border); min-height: 20px; }
-  .step-content { flex: 1; }
-  .step-title { font-family: var(--mono); font-size: 0.68rem; margin-bottom: 3px; }
-  .step-sub { font-family: var(--mono); font-size: 0.6rem; color: var(--muted); }
+  .step-content { flex: 1; min-width: 0; }
+  .step-title { font-family: var(--mono); font-size: 0.7rem; margin-bottom: 4px; overflow-wrap: anywhere; }
+  .step-sub { font-family: var(--mono); font-size: 0.61rem; color: var(--muted); line-height: 1.45; overflow-wrap: anywhere; }
 
   /* TASK INPUT */
   .task-input-panel { border-bottom: none; }
   .task-form { padding: 22px; display: flex; flex-direction: column; gap: 14px; flex: 1; overflow-y: auto; }
+  .dispatch-group { display: flex; flex-direction: column; gap: 14px; padding-bottom: 20px; border-bottom: 1px solid var(--border2); }
+  .dispatch-status-card { position: relative; margin-top: 2px; padding: 10px 0 0; }
+  .worker-register-card { margin-top: 10px; padding: 18px; border: 1px solid rgba(0,255,157,0.16); background: rgba(0,255,157,0.035); }
   .form-label { font-family: var(--mono); font-size: 0.6rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
   .form-input { width: 100%; background: var(--bg2); border: 1px solid var(--border); padding: 12px 14px; font-family: var(--mono); font-size: 0.72rem; color: var(--text); outline: none; resize: vertical; min-height: 44px; transition: border-color 0.2s; }
   .form-input:focus { border-color: var(--accent); }
@@ -162,10 +176,18 @@
   .btn-submit:disabled { opacity: 0.4; }
 
   /* LLM RESULT */
-  .result-area { background: var(--bg2); border: 1px solid var(--border2); padding: 18px; font-family: var(--mono); font-size: 0.68rem; color: var(--muted); line-height: 1.7; min-height: 130px; position: relative; overflow-y: auto; max-height: 240px; }
+  .result-area { background: linear-gradient(180deg, rgba(0,255,157,0.07), rgba(0,229,255,0.035)); border: 1px solid rgba(0,255,157,0.36); padding: 24px 18px 18px; font-family: var(--mono); font-size: 0.72rem; color: var(--accent3); line-height: 1.75; min-height: 150px; position: relative; overflow-y: auto; max-height: 300px; white-space: pre-wrap; box-shadow: inset 0 0 28px rgba(0,255,157,0.035), 0 0 24px rgba(0,255,157,0.06); }
   .result-typing::after { content: '\258B'; color: var(--accent); animation: blink 0.7s infinite; }
   @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
-  .result-label { position: absolute; top: -10px; left: 12px; font-size: 0.58rem; background: var(--bg2); padding: 0 6px; color: var(--accent2); letter-spacing: 0.1em; text-transform: uppercase; }
+  .result-label { position: absolute; top: -10px; left: 12px; font-size: 0.58rem; background: var(--bg); padding: 0 8px; color: var(--accent3); letter-spacing: 0.1em; text-transform: uppercase; }
+  .result-empty { color: var(--muted2); }
+  .result-page-link { display: inline-block; margin-top: 12px; border: 1px solid rgba(0,229,255,0.35); color: var(--accent); text-decoration: none; padding: 7px 10px; font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; }
+  .result-page-link:hover { border-color: var(--accent); box-shadow: 0 0 16px rgba(0,229,255,0.2); }
+  .my-results-card { border: 1px solid rgba(0,255,157,0.2); background: rgba(0,255,157,0.035); padding: 16px; }
+  .my-results-list { display: flex; flex-direction: column; gap: 10px; }
+  .result-list-item { border: 1px solid var(--border2); background: var(--surface); padding: 12px; }
+  .result-list-title { font-family: var(--mono); font-size: 0.68rem; color: var(--text); line-height: 1.45; margin-bottom: 9px; overflow-wrap: anywhere; }
+  .result-list-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-family: var(--mono); font-size: 0.58rem; color: var(--muted); }
 
   /* CHART */
   .chart-panel { overflow: hidden; }
@@ -253,10 +275,22 @@
       flex-direction: column;
     }
 
+    #jobsSection,
+    .post-column,
+    .activity-panel,
+    #somiFlowSection {
+      grid-column: auto;
+      grid-row: auto;
+    }
+
     .panel,
     .panel-last-col {
       min-height: 360px;
       border-right: none !important;
+    }
+
+    #jobsSection {
+      min-height: 0;
     }
 
     .post-job-panel {
@@ -329,7 +363,8 @@
     <a href="index.html" class="logo"><div class="logo-dot"></div>AGENT<span style="color:var(--text)">MARKET</span></a>
     <div class="nav-tabs">
       <a href="#dashboardTop" class="tab active"><div class="tab-dot"></div>Dashboard</a>
-      <a href="#somiFlowSection" class="tab">SOMI Flow</a>
+      <a href="worker-console.html" class="tab">Worker Console</a>
+      <a href="somi-flow.html" class="tab">SOMI Flow</a>
     </div>
   </div>
   <div class="topbar-right">
@@ -350,6 +385,7 @@
       <div class="sidebar-stat"><span class="sidebar-stat-name">Block</span><span class="sidebar-stat-val" id="blockNum">12,847,231</span></div>
       <div class="sidebar-stat"><span class="sidebar-stat-name">TPS</span><span class="sidebar-stat-val green" id="tps">1,240</span></div>
       <div class="sidebar-stat"><span class="sidebar-stat-name">Gas (gwei)</span><span class="sidebar-stat-val">0.001</span></div>
+    </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Get Testnet SOMI</div>
       <div class="sidebar-stat">
@@ -363,10 +399,10 @@
     </div>
     <div class="sidebar-section" id="registrySection">
       <div class="sidebar-label">Deployed Contracts</div>
-      <div class="sidebar-stat"><span class="sidebar-stat-name">Registry</span><a href="https://shannon-explorer.somnia.network/address/0x19F8677d4f45FeA1CE79BB8a1658FF670B1Ef57b" target="_blank" style="font-family:var(--mono);font-size:0.6rem;color:var(--accent);text-decoration:none;cursor:none">0x19F8...f57b &#x2197;</a></div>
-      <div class="sidebar-stat"><span class="sidebar-stat-name">JobQueue</span><a href="https://shannon-explorer.somnia.network/address/0xFd3EB3B2837613ED6C7C311e243aeF7e3b89ddfa" target="_blank" style="font-family:var(--mono);font-size:0.6rem;color:var(--accent3);text-decoration:none;cursor:none">0xFd3E...ddfa &#x2197;</a></div>
-      <div class="sidebar-stat"><span class="sidebar-stat-name">Escrow</span><a href="https://shannon-explorer.somnia.network/address/0x61719F1B6eB0Bbd4D76863083E4aB3c72a421aeB" target="_blank" style="font-family:var(--mono);font-size:0.6rem;color:var(--accent2);text-decoration:none;cursor:none">0x6171...1aeB &#x2197;</a></div>
-      <div class="sidebar-stat"><span class="sidebar-stat-name">Disputes</span><a href="https://shannon-explorer.somnia.network/address/0xFCC033a08e2F52Bf1CD7C1ed1D98C54ca5247Ad3" target="_blank" style="font-family:var(--mono);font-size:0.6rem;color:var(--warn);text-decoration:none;cursor:none">0xFCC0...7Ad3 &#x2197;</a></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-name">Registry</span><a href="https://shannon-explorer.somnia.network/address/0x7B3143cE27e7Db8987B42714Ede05eDE63B8989F" target="_blank" style="font-family:var(--mono);font-size:0.6rem;color:var(--accent);text-decoration:none;cursor:none">0x7B31...989F &#x2197;</a></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-name">JobQueue</span><a href="https://shannon-explorer.somnia.network/address/0x1110bAC387Bfbe2D1b39a30E92Fc64605e3cff79" target="_blank" style="font-family:var(--mono);font-size:0.6rem;color:var(--accent3);text-decoration:none;cursor:none">0x1110...ff79 &#x2197;</a></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-name">Escrow</span><a href="https://shannon-explorer.somnia.network/address/0x559A83B668f5e1B5c6E93659ED97Bc2Fcf1293C1" target="_blank" style="font-family:var(--mono);font-size:0.6rem;color:var(--accent2);text-decoration:none;cursor:none">0x559A...93C1 &#x2197;</a></div>
+      <div class="sidebar-stat"><span class="sidebar-stat-name">Disputes</span><a href="https://shannon-explorer.somnia.network/address/0x3C63B9b4Db8BA43C060E4683A2faee0E2D018364" target="_blank" style="font-family:var(--mono);font-size:0.6rem;color:var(--warn);text-decoration:none;cursor:none">0x3C63...8364 &#x2197;</a></div>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Market</div>
@@ -425,13 +461,13 @@
       </div>
 
       <!-- RIGHT: TASK INPUT + SOMI FLOW -->
-      <div style="display:flex;flex-direction:column;overflow:hidden;border-bottom:1px solid var(--border);" class="panel-last-col">
+      <div style="display:flex;flex-direction:column;overflow:hidden;border-bottom:1px solid var(--border);" class="panel-last-col post-column">
 
         <!-- TASK SUBMISSION FORM -->
         <div class="panel post-job-panel" style="flex:1.35;border-right:none;">
           <div class="panel-header">
             <div class="panel-title">Post a Job</div>
-            <span style="font-family:var(--mono);font-size:0.58rem;color:var(--accent2)">Demo Mode &middot; Simulated Output</span>
+            <span id="modeBadge" style="font-family:var(--mono);font-size:0.58rem;color:var(--accent3)">Live Mode &middot; On-chain Jobs</span>
           </div>
           <div class="task-form">
             <div>
@@ -457,20 +493,17 @@
                 <input type="number" class="form-input" id="budget" value="100">
               </div>
             </div>
-            <button class="btn-submit" id="submitBtn">&#9889; Dispatch to Orchestrator</button>
-            <div style="position:relative">
-              <div class="result-area" id="resultArea">
-                <span class="result-label">Agent Result</span>
-                <span id="resultText" style="color:var(--muted2)">Awaiting job dispatch...</span>
+            <div class="dispatch-group">
+              <button class="btn-submit" id="submitBtn">&#9889; Dispatch to Orchestrator</button>
+              <div class="my-results-card" id="resultArea">
+                <div class="form-label">My Posted Results</div>
+                <div id="resultText" class="result-empty" style="font-family:var(--mono);font-size:0.62rem;margin-bottom:10px">Completed jobs posted by this wallet will appear here.</div>
+                <div class="my-results-list" id="myResultsList">
+                  <div class="result-list-item">
+                    <div class="result-list-title result-empty">Completed jobs posted by this wallet will appear here.</div>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div style="border-top:1px solid var(--border2);padding-top:14px">
-              <div class="form-label">Register This Wallet As Worker</div>
-              <div class="form-row">
-                <input type="number" class="form-input" id="workerBid" value="5" placeholder="Bid per job (SOMI)">
-                <input type="number" class="form-input" id="workerStake" value="0.01" step="0.01" placeholder="Stake (SOMI)">
-              </div>
-              <button class="btn-submit" id="registerWorkerBtn" style="margin-top:10px;background:var(--accent3)">Register Worker</button>
             </div>
           </div>
         </div>
@@ -478,24 +511,12 @@
       </div>
 
       <!-- AGENT ACTIVITY LOG -->
-      <div class="panel" style="border-bottom:none">
+      <div class="panel activity-panel" style="border-bottom:none">
         <div class="panel-header">
           <div class="panel-title">Agent Activity Log</div>
           <span style="font-family:var(--mono);font-size:0.58rem;color:var(--muted)">Real-time execution trace</span>
         </div>
         <div class="flow-viz" id="activityLog"></div>
-      </div>
-
-      <!-- SOMI FLOW -->
-      <div class="panel panel-last-col" id="somiFlowSection" style="border-right:none;border-bottom:none;">
-        <div class="panel-header">
-          <div class="panel-title">SOMI Token Flow</div>
-        </div>
-        <div style="padding:12px 16px;border-bottom:1px solid var(--border2)">
-          <div class="sidebar-label" style="margin-bottom:10px">Capability Demand (24h)</div>
-          <div id="barChart"></div>
-        </div>
-        <div class="somi-flow" id="somiFlow"></div>
       </div>
 
     </div>
@@ -561,7 +582,9 @@ const barData = [
   { label:'SENTIMENT', val:11, color:'var(--warn)' },
 ];
 function renderBars() {
-  document.getElementById('barChart').innerHTML = barData.map(b => `
+  const barChart = document.getElementById('barChart');
+  if (!barChart) return;
+  barChart.innerHTML = barData.map(b => `
     <div class="bar-row">
       <span class="bar-label">${b.label}</span>
       <div class="bar-track"><div class="bar-fill" style="--bar-color:${b.color};width:${b.val}%"></div></div>
@@ -612,6 +635,7 @@ function renderJobs() {
         <div class="job-meta-item">CAP: <span>${j.cap.toUpperCase()}</span></div>
         <div class="job-meta-item">BUDGET: <span>${j.budget} SOMI</span></div>
         <div class="job-meta-item">WORKER: <span>${j.worker.slice(0,14)}...</span></div>
+        ${j.resultURI ? `<a class="job-result-btn" href="result.html?jobId=${String(j.id).replace('#', '')}" target="_blank" rel="noopener">View Result</a>` : ''}
       </div>
     </div>
   `).join('');
@@ -619,7 +643,12 @@ function renderJobs() {
 
 // --- ACTIVITY LOG ---
 let activities = [];
+const seenActivityKeys = new Set();
 function addActivity({dot, title, sub, color}) {
+  const key = `${title}|${sub || ''}`;
+  if (seenActivityKeys.has(key)) return;
+  seenActivityKeys.add(key);
+  if (seenActivityKeys.size > 80) seenActivityKeys.delete(seenActivityKeys.values().next().value);
   const time = new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   activities.unshift({dot, title, sub, color, time});
   if (activities.length > 20) activities.pop();
@@ -641,18 +670,28 @@ function addActivity({dot, title, sub, color}) {
 
 // --- SOMI FLOW ---
 let txs = [];
-function addSomiTx(from, to, amount) {
-  txs.unshift({from, to, amount, time: new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit',second:'2-digit'})});
-  if (txs.length > 15) txs.pop();
-  document.getElementById('somiFlow').innerHTML = txs.map(t => `
+function txExplorerLink(hash) {
+  return hash ? `https://shannon-explorer.somnia.network/tx/${hash}` : '';
+}
+
+function renderSomiFlow() {
+  const somiFlow = document.getElementById('somiFlow');
+  if (!somiFlow) return;
+  somiFlow.innerHTML = txs.length ? txs.map(t => `
     <div class="somi-tx">
-      <span class="somi-from">${t.from.slice(0,14)}</span>
-      <span class="somi-arrow">\u2192</span>
-      <span class="somi-to">${t.to.slice(0,14)}</span>
+      <span class="somi-from">${String(t.from).slice(0,14)}</span>
+      <span class="somi-arrow">&#x2192;</span>
+      <span class="somi-to">${String(t.to).slice(0,14)}</span>
       <span class="somi-amt">+${t.amount} SOMI</span>
-      <span class="somi-time">${t.time}</span>
+      ${t.hash ? `<a class="somi-time" href="${txExplorerLink(t.hash)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">View tx &#x2197;</a>` : `<span class="somi-time">${t.time}</span>`}
     </div>
-  `).join('');
+  `).join('') : '<div class="somi-tx"><span class="somi-from">No escrow activity yet</span></div>';
+}
+
+function addSomiTx(from, to, amount, hash='') {
+  txs.unshift({from, to, amount, hash, time: new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit',second:'2-digit'})});
+  if (txs.length > 15) txs.pop();
+  renderSomiFlow();
 }
 
 // --- BLOCK TICKER ---
@@ -661,6 +700,17 @@ setInterval(() => {
   document.getElementById('blockNum').textContent = blockNum.toLocaleString();
   document.getElementById('tps').textContent = (1200 + Math.floor(Math.random()*200)).toLocaleString();
 }, 800);
+
+document.getElementById('addJobBtn').addEventListener('click', () => {
+  const t = taskTemplates[Math.floor(Math.random() * taskTemplates.length)];
+  addJob(t.task, t.cap, t.budget, 'pending');
+  addActivity({
+    dot: 'var(--accent)',
+    title: 'Demo job added to queue',
+    sub: `${t.cap.toUpperCase()} \u00b7 ${t.budget} SOMI budget`,
+    color: 'var(--accent)'
+  });
+});
 
 // --- AUTO SIMULATION ---
 function autoSimulate() {
@@ -676,29 +726,69 @@ function autoSimulate() {
   }, 800);
 }
 
-// Seed initial data
-taskTemplates.slice(0,4).forEach((t,i) => {
-  setTimeout(() => addJob(t.task, t.cap, t.budget, i<2?'done':i===2?'active':'pending'), i*200);
-});
+addActivity({ dot:'var(--accent3)', title:'AgentMarket initialised', sub:'Somnia Testnet connected \u00b7 live on-chain mode', color:'var(--accent3)' });
 
-addActivity({ dot:'var(--accent3)', title:'AgentMarket initialised', sub:'Somnia Testnet connected \u00b7 247 workers online', color:'var(--accent3)' });
-addSomiTx('user_0xabc1', 'orchestrator', 180);
-addSomiTx('orchestrator', 'agent_0x4f2a', 126);
-addSomiTx('user_0xdef2', 'orchestrator', 80);
-
-let liveMode = false;
-setInterval(() => { if (!liveMode) autoSimulate(); }, 7000 + Math.random()*4000);
+let liveMode = true;
 
 const CONTRACTS = {
-  AgentRegistry: '0x19F8677d4f45FeA1CE79BB8a1658FF670B1Ef57b',
-  JobQueue: '0xFd3EB3B2837613ED6C7C311e243aeF7e3b89ddfa',
-  EscrowPayment: '0x61719F1B6eB0Bbd4D76863083E4aB3c72a421aeB',
-  DisputeResolver: '0xFCC033a08e2F52Bf1CD7C1ed1D98C54ca5247Ad3'
+  AgentRegistry: '0x7B3143cE27e7Db8987B42714Ede05eDE63B8989F',
+  JobQueue: '0x1110bAC387Bfbe2D1b39a30E92Fc64605e3cff79',
+  EscrowPayment: '0x559A83B668f5e1B5c6E93659ED97Bc2Fcf1293C1',
+  DisputeResolver: '0x3C63B9b4Db8BA43C060E4683A2faee0E2D018364'
 };
 
 const RPC_URL = 'https://dream-rpc.somnia.network';
-const STATUS_LABELS = ['pending', 'active', 'done', 'disputed', 'resolved'];
+const STATUS_LABELS = ['pending', 'active', 'submitted', 'done', 'disputed', 'resolved', 'cancelled'];
 let chain = null;
+
+function decodeResultURI(resultURI) {
+  const prefix = 'data:text/plain;base64,';
+  if (!resultURI || !resultURI.startsWith(prefix)) return '';
+  try {
+    const binary = atob(resultURI.slice(prefix.length));
+    const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
+    return new TextDecoder('utf-8').decode(bytes);
+  } catch {
+    return '';
+  }
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[ch]));
+}
+
+function renderMyPostedResults() {
+  const list = document.getElementById('myResultsList');
+  if (!list) return;
+  const wallet = (localStorage.getItem('walletAddress') || '').toLowerCase();
+  const resultJobs = jobs.filter(j => {
+    const hasResult = Boolean(j.resultURI);
+    const isMine = !wallet || !j.poster || String(j.poster).toLowerCase() === wallet;
+    return hasResult && isMine;
+  });
+
+  list.innerHTML = resultJobs.length ? resultJobs.map(j => `
+    <div class="result-list-item">
+      <div class="result-list-title">${escapeHtml(j.task.slice(0, 150))}${j.task.length > 150 ? '...' : ''}</div>
+      <div class="result-list-meta">
+        <span>JOB ${j.id}</span>
+        <span>${j.cap.toUpperCase()}</span>
+        <span>${j.status.toUpperCase()}</span>
+        <a class="job-result-btn" href="result.html?jobId=${String(j.id).replace('#', '')}" target="_blank" rel="noopener">View Result</a>
+      </div>
+    </div>
+  `).join('') : `
+    <div class="result-list-item">
+      <div class="result-list-title result-empty">No completed results for this wallet yet. Dispatch a job and wait for the worker result.</div>
+    </div>
+  `;
+}
 
 async function loadAbi(name) {
   const res = await fetch(`abis/${name}.json`);
@@ -714,7 +804,7 @@ async function getChain() {
     loadAbi('JobQueue'),
     loadAbi('EscrowPayment')
   ]);
-  const readProvider = window.ethereum ? new ethers.BrowserProvider(window.ethereum) : new ethers.JsonRpcProvider(RPC_URL);
+  const readProvider = new ethers.JsonRpcProvider(RPC_URL);
   chain = {
     readProvider,
     registry: new ethers.Contract(CONTRACTS.AgentRegistry, registryAbi, readProvider),
@@ -785,10 +875,12 @@ async function syncLiveJobs() {
     liveJobs.unshift({
       id: `#${id}`,
       task: job.taskData || job.capability,
+      poster: job.poster,
       cap: job.capability,
       budget: ethers.formatEther(job.budget),
       status: STATUS_LABELS[statusIndex] || 'pending',
       worker: job.worker === ethers.ZeroAddress ? 'unassigned' : job.worker,
+      resultURI: job.resultURI || '',
       time: new Date(Number(job.createdAt) * 1000).toLocaleTimeString()
     });
     if (escrow.amount > 0n) {
@@ -804,17 +896,12 @@ async function syncLiveJobs() {
   liveMode = true;
   jobs = liveJobs;
   renderJobs();
-  document.getElementById('activeJobs').textContent = String(liveJobs.filter(j => j.status !== 'done' && j.status !== 'resolved').length);
-  document.getElementById('jobFeed').innerHTML = liveJobs.length ? document.getElementById('jobFeed').innerHTML : '<div class="job-card"><div class="job-task">No on-chain jobs yet. Post the first one.</div></div>';
-  document.getElementById('somiFlow').innerHTML = txs.length ? txs.map(t => `
-    <div class="somi-tx">
-      <span class="somi-from">${t.from}</span>
-      <span class="somi-arrow">\u2192</span>
-      <span class="somi-to">${t.to}</span>
-      <span class="somi-amt">+${t.amount} SOMI</span>
-      <span class="somi-time">${t.time}</span>
-    </div>
-  `).join('') : '<div class="somi-tx"><span class="somi-from">No escrow activity yet</span></div>';
+  renderMyPostedResults();
+  document.getElementById('activeJobs').textContent = String(liveJobs.filter(j => !['done', 'resolved', 'cancelled'].includes(j.status)).length);
+  if (!liveJobs.length) {
+    document.getElementById('jobFeed').innerHTML = '<div class="job-card"><div class="job-task">No on-chain jobs yet. Post the first one.</div></div>';
+  }
+  renderSomiFlow();
 }
 
 async function syncLiveContracts() {
@@ -854,7 +941,7 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   const desc = document.getElementById('taskDesc').value.trim();
   const input = document.getElementById('taskInput').value.trim();
   const cap = document.getElementById('capability').value;
-  const budget = parseInt(document.getElementById('budget').value) || 100;
+  const budget = parseFloat(document.getElementById('budget').value) || 0.001;
 
   if (!desc) { document.getElementById('resultText').textContent = '\u26a0 Please enter a task description.'; return; }
 
@@ -954,14 +1041,23 @@ Key Briefs:
   setTimeout(typeChar, 800);
 });
 
-document.getElementById('registerWorkerBtn').addEventListener('click', async () => {
+if (document.getElementById('registerWorkerBtn')) document.getElementById('registerWorkerBtn').addEventListener('click', async () => {
   const btn = document.getElementById('registerWorkerBtn');
+  const resultText = document.getElementById('resultText');
   btn.disabled = true;
   btn.textContent = 'Registering Worker...';
   try {
     await registerRealWorker();
+    resultText.style.color = 'var(--accent3)';
+    resultText.textContent = 'Worker registered. This wallet can now receive matching orchestrator assignments.';
   } catch (err) {
-    addActivity({ dot:'var(--warn)', title:'Worker registration failed', sub: err.message, color:'var(--warn)' });
+    const message = err.message || 'Worker registration failed.';
+    const friendly = message.includes('already registered')
+      ? 'This wallet is already registered as a worker. You can dispatch jobs or use a different worker wallet.'
+      : message;
+    resultText.style.color = message.includes('already registered') ? 'var(--accent3)' : 'var(--warn)';
+    resultText.textContent = friendly;
+    addActivity({ dot: message.includes('already registered') ? 'var(--accent3)' : 'var(--warn)', title: message.includes('already registered') ? 'Worker already registered' : 'Worker registration failed', sub: friendly, color: message.includes('already registered') ? 'var(--accent3)' : 'var(--warn)' });
   } finally {
     btn.disabled = false;
     btn.textContent = 'Register Worker';
@@ -978,6 +1074,16 @@ const SOMNIA_PARAMS = {
   rpcUrls: ['https://dream-rpc.somnia.network'],
   blockExplorerUrls: ['https://shannon-explorer.somnia.network']
 };
+
+function redirectToLanding() {
+  window.location.href = 'index.html';
+}
+
+function clearWalletSession() {
+  localStorage.removeItem('walletConnected');
+  localStorage.removeItem('walletAddress');
+  localStorage.removeItem('walletType');
+}
 
 function shortAddress(address) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -1046,11 +1152,10 @@ async function connectDashboardWallet() {
 }
 
 function disconnectDashboardWallet() {
-  localStorage.removeItem('walletConnected');
-  localStorage.removeItem('walletAddress');
-  localStorage.removeItem('walletType');
+  clearWalletSession();
   setDisconnectedWalletState();
   liveMode = false;
+  redirectToLanding();
 }
 
 async function initDashboardWallet() {
@@ -1070,10 +1175,12 @@ async function initDashboardWallet() {
         localStorage.setItem('walletAddress', accounts[0]);
         await setConnectedWalletState(accounts[0]);
       } else {
-        setDisconnectedWalletState();
+        clearWalletSession();
+        redirectToLanding();
       }
     } catch {
-      setDisconnectedWalletState();
+      clearWalletSession();
+      redirectToLanding();
     }
 
     window.ethereum.on?.('accountsChanged', async accounts => {
@@ -1082,19 +1189,13 @@ async function initDashboardWallet() {
         localStorage.setItem('walletAddress', accounts[0]);
         await setConnectedWalletState(accounts[0]);
       } else {
-        localStorage.removeItem('walletConnected');
-        localStorage.removeItem('walletAddress');
-        setDisconnectedWalletState();
+        clearWalletSession();
+        redirectToLanding();
       }
     });
   } else {
-    setDisconnectedWalletState();
-    addActivity({
-      dot: 'var(--warn)',
-      title: 'No EVM wallet detected',
-      sub: 'Install MetaMask to connect · Demo simulation running below',
-      color: 'var(--warn)'
-    });
+    clearWalletSession();
+    redirectToLanding();
   }
 
   walletBtn.addEventListener('click', async () => {
@@ -1108,17 +1209,20 @@ async function initDashboardWallet() {
 
 // --- WEBSOCKET CLIENT (connects to agent runtime) ---
 function connectAgentWebSocket() {
-  if (location.protocol === 'https:' || location.hostname !== 'localhost') return;
+  const configuredUrl = window.AGENTMARKET_WS_URL || document.querySelector('meta[name="agentmarket-ws-url"]')?.content || "";
+  if (!configuredUrl && location.protocol === 'https:') return;
+  if (!configuredUrl && !['localhost', '127.0.0.1'].includes(location.hostname)) return;
 
   try {
     const wsPort = 3001;
-    const ws = new WebSocket(`ws://localhost:${wsPort}`);
+    const wsUrl = configuredUrl || `ws://localhost:${wsPort}`;
+    const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       addActivity({
         dot: 'var(--accent3)',
         title: 'WebSocket connected to agent runtime',
-        sub: `Receiving live orchestrator events on ws://localhost:${wsPort}`,
+        sub: `Receiving live orchestrator events on ${wsUrl}`,
         color: 'var(--accent3)'
       });
     };
@@ -1128,25 +1232,34 @@ function connectAgentWebSocket() {
         const { event: evtName, payload } = JSON.parse(event.data);
 
         if (evtName === 'orchestrator:assigned') {
+          const resultText = document.getElementById('resultText');
+          resultText.style.color = 'var(--accent2)';
+          resultText.textContent = `Job ${payload.jobId} assigned to worker ${payload.worker?.slice(0,6)}...${payload.worker?.slice(-4)}. Waiting for worker result and audit window.`;
           addActivity({
             dot: 'var(--accent2)',
             title: `Orchestrator assigned job ${payload.jobId}`,
             sub: `Worker: ${payload.worker?.slice(0,6)}...${payload.worker?.slice(-4)} · ${payload.capability?.toUpperCase()} · ${payload.budget} wei`,
             color: 'var(--accent2)'
           });
-          addSomiTx('orchestrator', payload.worker?.slice(0,14) || 'worker', payload.budget || 0);
+          addSomiTx('orchestrator', payload.worker?.slice(0,14) || 'worker', payload.budget || 0, payload.txHash || '');
         }
 
         if (evtName === 'orchestrator:completed') {
+          const resultText = document.getElementById('resultText');
+          resultText.style.color = 'var(--accent3)';
+          resultText.textContent = `Job ${payload.jobId} completed and verified. Result link added below.`;
           addActivity({
             dot: 'var(--accent3)',
             title: `Job ${payload.jobId} completed and verified on-chain`,
             sub: `Result hash: ${payload.resultHash?.slice(0,18)}... · Escrow released`,
             color: 'var(--accent3)'
           });
+          addSomiTx('escrow', payload.worker?.slice(0,14) || 'worker', payload.budget || 'released', payload.txHash || '');
           jobsCompleted++;
           document.getElementById('m1').textContent = jobsCompleted.toLocaleString();
-          syncLiveContracts().catch(() => {});
+          syncLiveContracts().catch(() => {
+            resultText.textContent = `Job ${payload.jobId} completed and verified. Escrow released to the worker.`;
+          });
         }
       } catch (e) {
         // Ignore malformed WS messages.
@@ -1178,3 +1291,4 @@ document.querySelectorAll('.nav-tabs .tab[href^="#"]').forEach(tab => {
 </script>
 </body>
 </html>
+

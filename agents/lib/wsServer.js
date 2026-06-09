@@ -5,11 +5,12 @@ let wss;
 function getWss() {
   if (!wss) {
     const port = process.env.WS_PORT || 3001;
-    wss = new WebSocket.Server({ port });
+    const host = process.env.WS_HOST || "0.0.0.0";
+    wss = new WebSocket.Server({ host, port });
     wss.on('connection', (ws) => {
       console.log('WebSocket client connected');
     });
-    console.log(`WebSocket server listening on ws://localhost:${port}`);
+    console.log(`WebSocket server listening on ws://${host}:${port}`);
   }
   return wss;
 }

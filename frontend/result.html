@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentMarket - Job Result</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@600;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #030707;
+    --surface: rgba(8, 20, 24, 0.92);
+    --border: rgba(0, 229, 255, 0.22);
+    --accent: #00e5ff;
+    --accent3: #00ff9d;
+    --text: #f3f7f7;
+    --muted: #5d91a3;
+    --warn: #ff6b35;
+    --mono: 'Space Mono', monospace;
+    --display: 'Syne', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      linear-gradient(rgba(0,229,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.025) 1px, transparent 1px),
+      radial-gradient(circle at 70% 10%, rgba(0,255,157,0.12), transparent 32%),
+      var(--bg);
+    background-size: 40px 40px, 40px 40px, auto, auto;
+    color: var(--text);
+    font-family: var(--mono);
+  }
+  .shell { max-width: 1120px; margin: 0 auto; padding: 28px 20px 54px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px; }
+  .brand { font-family: var(--display); font-weight: 800; letter-spacing: 0.08em; color: var(--text); text-decoration: none; }
+  .brand::before { content: ''; display: inline-block; width: 8px; height: 8px; background: var(--accent3); border-radius: 50%; margin-right: 10px; }
+  .back { color: var(--accent); text-decoration: none; border: 1px solid var(--border); padding: 9px 12px; font-size: 0.72rem; }
+  .hero { border: 1px solid var(--border); background: rgba(0,229,255,0.035); padding: 22px; margin-bottom: 18px; }
+  .eyebrow { color: var(--accent3); letter-spacing: 0.16em; text-transform: uppercase; font-size: 0.68rem; margin-bottom: 8px; }
+  h1 { font-family: var(--display); margin: 0; font-size: clamp(2rem, 5vw, 4rem); line-height: 0.95; }
+  .meta { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 18px 0; }
+  .meta-card { border: 1px solid rgba(0,229,255,0.16); background: var(--surface); padding: 13px; }
+  .meta-label { color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.58rem; margin-bottom: 6px; }
+  .meta-value { color: var(--accent); overflow-wrap: anywhere; font-size: 0.76rem; }
+  .result-card { border: 1px solid rgba(0,255,157,0.36); background: linear-gradient(180deg, rgba(0,255,157,0.08), rgba(0,229,255,0.035)); padding: 22px; box-shadow: 0 0 36px rgba(0,255,157,0.08); }
+  .result-title { color: var(--accent3); letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.7rem; margin-bottom: 14px; }
+  pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--accent3); font-family: var(--mono); font-size: 0.9rem; line-height: 1.75; }
+  .task-card { margin-top: 16px; border: 1px solid rgba(0,229,255,0.14); background: rgba(8,20,24,0.78); padding: 18px; }
+  .status { color: var(--muted); }
+  .error { color: var(--warn); }
+  @media (max-width: 760px) {
+    .topbar { align-items: flex-start; flex-direction: column; }
+    .meta { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <main class="shell">
+    <div class="topbar">
+      <a class="brand" href="agentmarket-dashboard.html">AgentMarket</a>
+      <a class="back" href="agentmarket-dashboard.html">Back to Dashboard</a>
+    </div>
+
+    <section class="hero">
+      <div class="eyebrow">On-chain worker output</div>
+      <h1 id="title">Job Result</h1>
+    </section>
+
+    <section class="meta">
+      <div class="meta-card"><div class="meta-label">Job</div><div class="meta-value" id="jobId">-</div></div>
+      <div class="meta-card"><div class="meta-label">Status</div><div class="meta-value" id="status">Loading</div></div>
+      <div class="meta-card"><div class="meta-label">Capability</div><div class="meta-value" id="capability">-</div></div>
+      <div class="meta-card"><div class="meta-label">Worker</div><div class="meta-value" id="worker">-</div></div>
+    </section>
+
+    <section class="result-card">
+      <div class="result-title">Agent Result</div>
+      <pre id="result" class="status">Loading result from JobQueue...</pre>
+    </section>
+
+    <section class="task-card">
+      <div class="result-title">Original Task</div>
+      <pre id="task" class="status">Loading task...</pre>
+    </section>
+  </main>
+
+<script>
+const CONTRACTS = {
+  JobQueue: '0x1110bAC387Bfbe2D1b39a30E92Fc64605e3cff79'
+};
+const RPC_URL = 'https://dream-rpc.somnia.network';
+const STATUS_LABELS = ['pending', 'active', 'submitted', 'done', 'disputed', 'resolved', 'cancelled'];
+const JobQueueABI = [
+  'function jobs(uint256) view returns (uint256 id, address poster, string capability, string taskData, uint256 budget, address worker, bytes32 resultHash, string resultURI, uint8 status, uint256 createdAt, uint256 deadline, uint256 submittedAt)'
+];
+
+function shortAddress(addr) {
+  return !addr || addr === ethers.ZeroAddress ? 'unassigned' : `${addr.slice(0,6)}...${addr.slice(-4)}`;
+}
+
+function redirectToLanding(){ window.location.href = 'index.html'; }
+function clearWalletSession(){ localStorage.removeItem('walletConnected'); localStorage.removeItem('walletAddress'); localStorage.removeItem('walletType'); }
+async function requireWalletAccess(){
+  if(!window.ethereum || localStorage.getItem('walletConnected') !== 'true') redirectToLanding();
+  const accounts = await ethereum.request({ method:'eth_accounts' });
+  if(!accounts[0]) { clearWalletSession(); redirectToLanding(); return; }
+  localStorage.setItem('walletAddress', accounts[0]);
+}
+
+function decodeResultURI(resultURI) {
+  const prefix = 'data:text/plain;base64,';
+  if (!resultURI || !resultURI.startsWith(prefix)) return '';
+  try {
+    const binary = atob(resultURI.slice(prefix.length));
+    const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
+    return new TextDecoder('utf-8').decode(bytes);
+  } catch {
+    return '';
+  }
+}
+
+async function loadResult() {
+  const params = new URLSearchParams(window.location.search);
+  const jobId = params.get('jobId');
+  if (jobId === null || jobId === '') throw new Error('Missing jobId in URL');
+
+  document.getElementById('jobId').textContent = `#${jobId}`;
+  document.getElementById('title').textContent = `Job #${jobId} Result`;
+
+  const provider = new ethers.JsonRpcProvider(RPC_URL);
+  const jobQueue = new ethers.Contract(CONTRACTS.JobQueue, JobQueueABI, provider);
+  const job = await jobQueue.jobs(jobId);
+  const result = decodeResultURI(job.resultURI);
+
+  document.getElementById('status').textContent = (STATUS_LABELS[Number(job.status)] || 'unknown').toUpperCase();
+  document.getElementById('capability').textContent = job.capability.toUpperCase();
+  document.getElementById('worker').textContent = shortAddress(job.worker);
+  document.getElementById('task').textContent = job.taskData || 'No task data available.';
+  document.getElementById('result').textContent = result || 'No result submitted yet for this job.';
+}
+
+window.ethereum?.on?.('accountsChanged', accounts => {
+  if(!accounts[0]) { clearWalletSession(); redirectToLanding(); }
+});
+requireWalletAccess().then(loadResult).catch(err => {
+  document.getElementById('status').textContent = 'ERROR';
+  document.getElementById('result').className = 'error';
+  document.getElementById('result').textContent = err.message || 'Failed to load result.';
+});
+</script>
+</body>
+</html>

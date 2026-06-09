@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentMarket - SOMI Flow</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@600;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<style>
+  :root { --bg:#030707; --surface:rgba(8,20,24,.92); --border:rgba(0,229,255,.22); --accent:#00e5ff; --accent2:#8a5cff; --accent3:#00ff9d; --text:#f3f7f7; --muted:#5d91a3; --mono:'Space Mono',monospace; --display:'Syne',sans-serif; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; color:var(--text); font-family:var(--mono); background:linear-gradient(rgba(0,229,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.025) 1px,transparent 1px),radial-gradient(circle at 70% 8%,rgba(0,229,255,.12),transparent 32%),var(--bg); background-size:40px 40px,40px 40px,auto,auto; }
+  .shell { max-width:1120px; margin:0 auto; padding:28px 20px 60px; }
+  .topbar { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:22px; }
+  .brand { color:var(--text); text-decoration:none; font-family:var(--display); font-weight:800; letter-spacing:.08em; }
+  .brand::before { content:''; display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--accent3); margin-right:10px; }
+  .nav { display:flex; gap:8px; flex-wrap:wrap; }
+  .nav a { border:1px solid var(--border); color:var(--accent); background:transparent; text-decoration:none; padding:9px 12px; font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; }
+  .hero { border:1px solid var(--border); background:rgba(0,229,255,.035); padding:22px; margin-bottom:18px; }
+  .eyebrow { color:var(--accent3); letter-spacing:.16em; text-transform:uppercase; font-size:.68rem; margin-bottom:8px; }
+  h1 { font-family:var(--display); margin:0; font-size:clamp(2.35rem,4.8vw,4.15rem); line-height:1.06; letter-spacing:-.025em; }
+  .grid { display:grid; grid-template-columns:360px minmax(0,1fr); gap:16px; }
+  .card { border:1px solid var(--border); background:var(--surface); padding:18px; }
+  .label { color:var(--muted); text-transform:uppercase; letter-spacing:.12em; font-size:.6rem; margin-bottom:10px; }
+  .bar-row { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .bar-label { width:86px; color:var(--muted); font-size:.62rem; }
+  .bar-track { flex:1; height:8px; background:rgba(93,145,163,.22); }
+  .bar-fill { height:100%; background:var(--accent); }
+  .bar-pct { width:42px; text-align:right; color:var(--accent3); font-size:.62rem; }
+  .flow-list { display:flex; flex-direction:column; gap:10px; }
+  .flow-row { display:grid; grid-template-columns:1fr 30px 1fr 110px 90px; gap:10px; align-items:center; border:1px solid rgba(0,229,255,.14); background:rgba(0,229,255,.035); padding:12px; }
+  .from,.to,.time { color:var(--muted); overflow-wrap:anywhere; font-size:.66rem; }
+  .arrow { color:var(--accent); text-align:center; }
+  .amt { color:var(--accent3); font-weight:700; text-align:right; }
+  .empty { color:var(--muted); line-height:1.7; }
+  @media (max-width:860px) { .grid { grid-template-columns:1fr; } .flow-row { grid-template-columns:1fr; } .amt { text-align:left; } .topbar { align-items:flex-start; flex-direction:column; } }
+</style>
+</head>
+<body>
+<main class="shell">
+  <div class="topbar">
+    <a class="brand" href="agentmarket-dashboard.html">AgentMarket</a>
+    <div class="nav">
+      <a href="agentmarket-dashboard.html">Dashboard</a>
+      <a href="worker-console.html">Worker Console</a>
+    </div>
+  </div>
+  <section class="hero">
+    <div class="eyebrow">SOMI Token Flow</div>
+    <h1>Escrow movement across posted jobs.</h1>
+  </section>
+  <section class="grid">
+    <div class="card">
+      <div class="label">Capability Demand</div>
+      <div id="bars"></div>
+    </div>
+    <div class="card">
+      <div class="label">Recent Escrow Flows</div>
+      <div id="flows" class="flow-list"><div class="empty">Loading escrow flows...</div></div>
+    </div>
+  </section>
+</main>
+<script>
+const CONTRACTS = {
+  JobQueue: '0x1110bAC387Bfbe2D1b39a30E92Fc64605e3cff79',
+  EscrowPayment: '0x559A83B668f5e1B5c6E93659ED97Bc2Fcf1293C1'
+};
+const RPC_URL = 'https://dream-rpc.somnia.network';
+const JobQueueABI = [
+  'function nextJobId() view returns (uint256)',
+  'function jobs(uint256) view returns (uint256 id, address poster, string capability, string taskData, uint256 budget, address worker, bytes32 resultHash, string resultURI, uint8 status, uint256 createdAt, uint256 deadline, uint256 submittedAt)'
+];
+const EscrowABI = ['function escrows(uint256) view returns (address payer, address payee, uint256 amount, bool released, bool disputed)'];
+function shortAddress(a){ return !a || a === ethers.ZeroAddress ? 'escrow' : `${a.slice(0,6)}...${a.slice(-4)}`; }
+function redirectToLanding(){ window.location.href = 'index.html'; }
+function clearWalletSession(){ localStorage.removeItem('walletConnected'); localStorage.removeItem('walletAddress'); localStorage.removeItem('walletType'); }
+async function requireWalletAccess(){
+  if(!window.ethereum || localStorage.getItem('walletConnected') !== 'true') redirectToLanding();
+  const accounts = await ethereum.request({ method:'eth_accounts' });
+  if(!accounts[0]) { clearWalletSession(); redirectToLanding(); return; }
+  localStorage.setItem('walletAddress', accounts[0]);
+}
+async function loadFlows(){
+  const provider = new ethers.JsonRpcProvider(RPC_URL);
+  const jobQueue = new ethers.Contract(CONTRACTS.JobQueue, JobQueueABI, provider);
+  const escrow = new ethers.Contract(CONTRACTS.EscrowPayment, EscrowABI, provider);
+  const next = Number(await jobQueue.nextJobId());
+  const caps = {};
+  const flows = [];
+  for(let id=Math.max(0,next-30); id<next; id++){
+    const job = await jobQueue.jobs(id);
+    caps[job.capability] = (caps[job.capability] || 0) + 1;
+    const e = await escrow.escrows(id);
+    if(e.amount > 0n) {
+      flows.unshift({ id, from: shortAddress(e.payer), to: shortAddress(e.payee), amount: ethers.formatEther(e.amount), status: e.released ? 'released' : e.disputed ? 'disputed' : 'locked' });
+    }
+  }
+  const total = Object.values(caps).reduce((a,b)=>a+b,0) || 1;
+  document.getElementById('bars').innerHTML = Object.entries(caps).length ? Object.entries(caps).map(([cap,count],i)=>{
+    const pct = Math.round((count / total) * 100);
+    const colors = ['var(--accent)','var(--accent3)','var(--accent2)','#ff6b35'];
+    return `<div class="bar-row"><div class="bar-label">${cap.toUpperCase()}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${colors[i%colors.length]}"></div></div><div class="bar-pct">${pct}%</div></div>`;
+  }).join('') : '<div class="empty">No jobs yet.</div>';
+  document.getElementById('flows').innerHTML = flows.length ? flows.map(f => `
+    <div class="flow-row">
+      <div class="from">${f.from}</div>
+      <div class="arrow">→</div>
+      <div class="to">${f.to}</div>
+      <div class="amt">+${f.amount} SOMI</div>
+      <div class="time">${f.status.toUpperCase()}</div>
+    </div>
+  `).join('') : '<div class="empty">No escrow activity yet.</div>';
+}
+window.ethereum?.on?.('accountsChanged', accounts => {
+  if(!accounts[0]) { clearWalletSession(); redirectToLanding(); }
+});
+requireWalletAccess()
+  .then(loadFlows)
+  .catch(err => document.getElementById('flows').innerHTML = `<div class="empty">${err.message}</div>`);
+</script>
+</body>
+</html>

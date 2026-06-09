@@ -50,7 +50,7 @@ contract DisputeResolver {
         address worker = address(0);
         
         // Fetch worker from JobQueue
-        (,,,,, address jobWorker,,,,,) = jobQueue.jobs(jobId);
+        (,,,,, address jobWorker,,,,,,) = jobQueue.jobs(jobId);
         worker = jobWorker;
 
         if (upheld) {
@@ -63,7 +63,7 @@ contract DisputeResolver {
             jobQueue.resolveJob(jobId, JobQueue.Status.RESOLVED);
         } else {
             // If not upheld, release funds to the worker
-            escrow.release(jobId);
+            escrow.releaseDisputed(jobId);
             jobQueue.resolveJob(jobId, JobQueue.Status.COMPLETED);
         }
         

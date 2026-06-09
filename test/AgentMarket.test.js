@@ -29,6 +29,7 @@ describe("AgentMarket Smart Contracts Suite", function () {
     await escrow.setAuthorized(await jobQueue.getAddress(), true);
     await escrow.setAuthorized(await disputeResolver.getAddress(), true);
     await jobQueue.setEscrow(await escrow.getAddress());
+    await jobQueue.setAuditWindow(0);
   });
 
   it("Should support registering a worker with stake", async function () {
@@ -61,16 +62,32 @@ describe("AgentMarket Smart Contracts Suite", function () {
 
     const result = "PROCESSED_RESULT: [TRANSLATE] for IPFS_CID";
     const resultHash = ethers.keccak256(ethers.toUtf8Bytes(result));
-    await jobQueue.connect(worker).submitResult(0, resultHash, result);
+    const resultURI = `data:text/plain;base64,${Buffer.from(result).toString("base64")}`;
+    await jobQueue.connect(worker).submitResult(0, resultHash, resultURI);
 
     const workerBalanceBefore = await ethers.provider.getBalance(await worker.getAddress());
     await jobQueue.completeJob(0);
     const workerBalanceAfter = await ethers.provider.getBalance(await worker.getAddress());
     const jobInfo = await jobQueue.jobs(0);
 
-    expect(jobInfo.status).to.equal(2);
-    expect(jobInfo.resultData).to.equal(result);
+    expect(jobInfo.status).to.equal(3);
+    expect(jobInfo.resultURI).to.equal(resultURI);
     expect(workerBalanceAfter - workerBalanceBefore).to.equal(jobBudget);
+  });
+
+  it("Should support worker lifecycle updates and stake withdrawal", async function () {
+    await registry.connect(worker).register(["translate"], ethers.parseEther("1"), { value: MIN_STAKE });
+    await registry.connect(worker).updateWorker(["classify"], ethers.parseEther("2"));
+    await registry.connect(worker).topUpStake({ value: MIN_STAKE });
+    let workerInfo = await registry.workers(await worker.getAddress());
+    expect(workerInfo.bidPerJob).to.equal(ethers.parseEther("2"));
+    expect(workerInfo.stake).to.equal(MIN_STAKE * 2n);
+
+    await registry.connect(worker).deactivate();
+    await registry.connect(worker).withdrawStake();
+    workerInfo = await registry.workers(await worker.getAddress());
+    expect(workerInfo.active).to.equal(false);
+    expect(workerInfo.stake).to.equal(0);
   });
 
   it("Should restrict registry admin functions to owner", async function () {
@@ -97,6 +114,6 @@ describe("AgentMarket Smart Contracts Suite", function () {
     const workerInfo = await registry.workers(await worker.getAddress());
     const jobInfo = await jobQueue.jobs(0);
     expect(workerInfo.active).to.equal(false);
-    expect(jobInfo.status).to.equal(4);
+    expect(jobInfo.status).to.equal(5);
   });
 });

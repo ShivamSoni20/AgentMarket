@@ -20,8 +20,11 @@ contract AgentRegistry {
     mapping(address => bool) public authorized;
 
     event WorkerRegistered(address indexed worker, string[] caps, uint256 bid);
+    event WorkerUpdated(address indexed worker, string[] caps, uint256 bid);
+    event WorkerStakeToppedUp(address indexed worker, uint256 amount);
     event WorkerSlashed(address indexed worker, uint256 amount);
     event WorkerDeactivated(address indexed worker);
+    event WorkerStakeWithdrawn(address indexed worker, uint256 amount);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event AuthorizedUpdated(address indexed account, bool enabled);
 
@@ -56,9 +59,57 @@ contract AgentRegistry {
     function register(string[] calldata caps, uint256 bidPerJob) external payable {
         require(!workers[msg.sender].active, "already registered");
         require(msg.value >= MIN_STAKE, "insufficient stake");
-        workers[msg.sender] = Worker(msg.sender, caps, bidPerJob, msg.value, 500, 0, true);
+        Worker storage worker = workers[msg.sender];
+        worker.owner = msg.sender;
+        worker.bidPerJob = bidPerJob;
+        worker.stake = msg.value;
+        worker.rating = 500;
+        worker.jobsCompleted = 0;
+        worker.active = true;
+        delete worker.caps;
+        for (uint256 i = 0; i < caps.length; i++) {
+            worker.caps.push(caps[i]);
+        }
         workerList.push(msg.sender);
         emit WorkerRegistered(msg.sender, caps, bidPerJob);
+    }
+
+    function updateWorker(string[] calldata caps, uint256 bidPerJob) external {
+        Worker storage worker = workers[msg.sender];
+        require(worker.owner == msg.sender && worker.active, "not active worker");
+        delete worker.caps;
+        for (uint256 i = 0; i < caps.length; i++) {
+            worker.caps.push(caps[i]);
+        }
+        worker.bidPerJob = bidPerJob;
+        emit WorkerUpdated(msg.sender, caps, bidPerJob);
+    }
+
+    function topUpStake() external payable {
+        Worker storage worker = workers[msg.sender];
+        require(worker.owner == msg.sender && worker.active, "not active worker");
+        require(msg.value > 0, "no stake");
+        worker.stake += msg.value;
+        emit WorkerStakeToppedUp(msg.sender, msg.value);
+    }
+
+    function deactivate() external {
+        Worker storage worker = workers[msg.sender];
+        require(worker.owner == msg.sender && worker.active, "not active worker");
+        worker.active = false;
+        emit WorkerDeactivated(msg.sender);
+    }
+
+    function withdrawStake() external {
+        Worker storage worker = workers[msg.sender];
+        require(worker.owner == msg.sender, "not worker owner");
+        require(!worker.active, "worker active");
+        uint256 amount = worker.stake;
+        require(amount > 0, "no stake");
+        worker.stake = 0;
+        (bool ok, ) = payable(msg.sender).call{value: amount}("");
+        require(ok, "withdraw failed");
+        emit WorkerStakeWithdrawn(msg.sender, amount);
     }
 
     function slash(address worker) external onlyAuthorized returns (uint256) {
