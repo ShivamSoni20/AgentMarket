@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AgentMarket - SOMI Flow</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@600;800&display=swap" rel="stylesheet">
+<script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <style>
   :root { --bg:#030707; --surface:rgba(8,20,24,.92); --border:rgba(0,229,255,.22); --accent:#00e5ff; --accent2:#8a5cff; --accent3:#00ff9d; --text:#f3f7f7; --muted:#5d91a3; --mono:'Space Mono',monospace; --display:'Syne',sans-serif; }
@@ -62,10 +63,10 @@
 </main>
 <script>
 const CONTRACTS = {
-  JobQueue: '0x1110bAC387Bfbe2D1b39a30E92Fc64605e3cff79',
-  EscrowPayment: '0x559A83B668f5e1B5c6E93659ED97Bc2Fcf1293C1'
+  JobQueue: window.AGENTMARKET_CONFIG?.JOB_QUEUE_ADDRESS || '0x1110bAC387Bfbe2D1b39a30E92Fc64605e3cff79',
+  EscrowPayment: window.AGENTMARKET_CONFIG?.ESCROW_PAYMENT_ADDRESS || '0x559A83B668f5e1B5c6E93659ED97Bc2Fcf1293C1'
 };
-const RPC_URL = 'https://dream-rpc.somnia.network';
+const RPC_URL = window.AGENTMARKET_CONFIG?.RPC_URL || 'https://dream-rpc.somnia.network';
 const JobQueueABI = [
   'function nextJobId() view returns (uint256)',
   'function jobs(uint256) view returns (uint256 id, address poster, string capability, string taskData, uint256 budget, address worker, bytes32 resultHash, string resultURI, uint8 status, uint256 createdAt, uint256 deadline, uint256 submittedAt)'

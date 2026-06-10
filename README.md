@@ -84,6 +84,62 @@ Open `http://127.0.0.1:8080`.
 
 ## Vercel
 
-The repo includes `vercel.json` for static deployment from the repo root. Vercel hosts only the frontend. The orchestrator, workers, auditor, and WebSocket server are long-running Node services and should run on a VPS, Railway, Render worker, Fly.io, or similar.
+The repo includes `vercel.json` for static deployment from the repo root. Vercel hosts only the frontend. The orchestrator, workers, auditor, and WebSocket server are long-running Node services and should run on Railway, Render worker, Fly.io, VPS, or similar.
 
-For hosted live agent events, set the dashboard meta tag `agentmarket-ws-url` or define `window.AGENTMARKET_WS_URL` to your deployed `wss://` runtime URL.
+Frontend runtime settings live in `frontend/config.js`. Before deploying to Vercel, update:
+
+- `AGENTMARKET_WS_URL` to your Railway WebSocket URL, for example `wss://your-app.up.railway.app`.
+- Contract addresses if you redeploy.
+- `RPC_URL` if Somnia changes the public RPC.
+
+## Railway Backend
+
+Railway should run the long-lived agent runtime:
+
+```bash
+npm run railway:start
+```
+
+The repo includes `railway.json` with:
+
+- `startCommand`: `npm run railway:start`
+- `healthcheckPath`: `/health`
+- automatic restart on failure
+
+Set these Railway variables:
+
+```env
+RPC_URL=https://dream-rpc.somnia.network
+AGENT_REGISTRY_ADDRESS=0x7B3143cE27e7Db8987B42714Ede05eDE63B8989F
+JOB_QUEUE_ADDRESS=0x1110bAC387Bfbe2D1b39a30E92Fc64605e3cff79
+ESCROW_PAYMENT_ADDRESS=0x559A83B668f5e1B5c6E93659ED97Bc2Fcf1293C1
+DISPUTE_RESOLVER_ADDRESS=0x3C63B9b4Db8BA43C060E4683A2faee0E2D018364
+ORCHESTRATOR_PRIVATE_KEY=your_funded_orchestrator_key
+WORKER_PRIVATE_KEY=your_funded_worker_key
+AUDITOR_PRIVATE_KEY=your_funded_auditor_key
+AIML_API_KEY=your_aiml_api_key
+WORKER_CAPABILITY=translate
+WORKER_BID=5
+WORKER_STAKE=0.01
+AUDIT_SAMPLE_RATE=0.20
+ORCHESTRATOR_SCAN_WINDOW=200
+RUN_ORCHESTRATOR=true
+RUN_WORKER=true
+RUN_AUDITOR=true
+```
+
+Use separate Railway services if you want independent worker wallets per capability. For example, one service can run only a summarise worker with:
+
+```env
+RUN_ORCHESTRATOR=false
+RUN_AUDITOR=false
+RUN_WORKER=true
+WORKER_CAPABILITY=summarise
+WORKER_PRIVATE_KEY=worker_specific_key
+```
+
+After Railway deploys, copy its public domain into `frontend/config.js`:
+
+```js
+AGENTMARKET_WS_URL: "wss://your-railway-domain.up.railway.app"
+```

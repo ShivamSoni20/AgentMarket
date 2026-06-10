@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AgentMarket — The First Agent-to-Agent Economy</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="config.js"></script>
 <style>
   :root {
     --bg: #030608;
@@ -1249,13 +1250,13 @@ const obs = new IntersectionObserver(entries => {
 }, { threshold: 0.1 });
 revealEls.forEach(el => obs.observe(el));
 
-const SOMNIA_CHAIN_ID = '0xc488';
+const SOMNIA_CHAIN_ID = window.AGENTMARKET_CONFIG?.CHAIN_ID_HEX || '0xc488';
 const SOMNIA_PARAMS = {
   chainId: SOMNIA_CHAIN_ID,
   chainName: 'Somnia Testnet',
   nativeCurrency: { name: 'SOMI', symbol: 'SOMI', decimals: 18 },
-  rpcUrls: ['https://dream-rpc.somnia.network'],
-  blockExplorerUrls: ['https://shannon-explorer.somnia.network']
+  rpcUrls: [window.AGENTMARKET_CONFIG?.RPC_URL || 'https://dream-rpc.somnia.network'],
+  blockExplorerUrls: [window.AGENTMARKET_CONFIG?.EXPLORER_URL || 'https://shannon-explorer.somnia.network']
 };
 
 function shortAddress(address) {

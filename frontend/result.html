@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AgentMarket - Job Result</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@600;800&display=swap" rel="stylesheet">
+<script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <style>
   :root {
@@ -88,9 +89,9 @@
 
 <script>
 const CONTRACTS = {
-  JobQueue: '0x1110bAC387Bfbe2D1b39a30E92Fc64605e3cff79'
+  JobQueue: window.AGENTMARKET_CONFIG?.JOB_QUEUE_ADDRESS || '0x1110bAC387Bfbe2D1b39a30E92Fc64605e3cff79'
 };
-const RPC_URL = 'https://dream-rpc.somnia.network';
+const RPC_URL = window.AGENTMARKET_CONFIG?.RPC_URL || 'https://dream-rpc.somnia.network';
 const STATUS_LABELS = ['pending', 'active', 'submitted', 'done', 'disputed', 'resolved', 'cancelled'];
 const JobQueueABI = [
   'function jobs(uint256) view returns (uint256 id, address poster, string capability, string taskData, uint256 budget, address worker, bytes32 resultHash, string resultURI, uint8 status, uint256 createdAt, uint256 deadline, uint256 submittedAt)'

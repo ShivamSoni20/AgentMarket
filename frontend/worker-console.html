@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AgentMarket - Worker Console</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@600;800&display=swap" rel="stylesheet">
+<script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <style>
   :root { --bg:#030707; --surface:rgba(8,20,24,.92); --border:rgba(0,229,255,.22); --accent:#00e5ff; --accent3:#00ff9d; --text:#f3f7f7; --muted:#5d91a3; --warn:#ff6b35; --mono:'Space Mono',monospace; --display:'Syne',sans-serif; }
@@ -70,9 +71,9 @@
   </section>
 </main>
 <script>
-const CONTRACTS = { AgentRegistry: '0x7B3143cE27e7Db8987B42714Ede05eDE63B8989F' };
-const RPC_URL = 'https://dream-rpc.somnia.network';
-const SOMNIA_CHAIN_ID = '0xc4a8';
+const CONTRACTS = { AgentRegistry: window.AGENTMARKET_CONFIG?.AGENT_REGISTRY_ADDRESS || '0x7B3143cE27e7Db8987B42714Ede05eDE63B8989F' };
+const RPC_URL = window.AGENTMARKET_CONFIG?.RPC_URL || 'https://dream-rpc.somnia.network';
+const SOMNIA_CHAIN_ID = window.AGENTMARKET_CONFIG?.CHAIN_ID_HEX || '0xc488';
 const AgentRegistryABI = [
   'function register(string[] calldata caps, uint256 bidPerJob) external payable',
   'function updateWorker(string[] calldata caps, uint256 bidPerJob) external',
